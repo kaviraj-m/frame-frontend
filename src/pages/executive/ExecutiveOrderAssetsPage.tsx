@@ -1,0 +1,418 @@
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { api, apiBinaryGet, apiUpload } from "../../lib/api";
+import { apiPaths } from "../../lib/apiPaths";
+import { formatShortDateTime } from "../../lib/formatDisplay";
+import { PageHeader } from "../../components/ui/PageHeader";
+
+type OrderAssetRow = {
+  id: string;
+  orderId: string;
+  r2Key: string;
+  assetType: string;
+  isFinal: boolean;
+  createdAt?: string;
+};
+
+function fileLabelFromKey(key: string): string {
+  const i = key.lastIndexOf("/");
+  return i >= 0 ? key.slice(i + 1) : key;
+}
+
+function assetTypeLabel(t: string): string {
+  switch (t) {
+    case "SOURCE_PHOTO":
+      return "Source photo (print)";
+    case "CUSTOMER_PHOTO":
+      return "Customer image (frame)";
+    case "DESIGN_PREVIEW":
+      return "Design preview";
+    case "FINAL_IMAGE":
+      return "Final image";
+    default:
+      return t;
+  }
+}
+
+export function ExecutiveOrderAssetsPage() {
+  const { orderId: orderIdParam } = useParams();
+  const orderId = orderIdParam ? decodeURIComponent(orderIdParam) : "";
+  const [assetKey, setAssetKey] = useState("");
+  const [sourceFiles, setSourceFiles] = useState<File[]>([]);
+  const [assets, setAssets] = useState<OrderAssetRow[]>([]);
+  const [status, setStatus] = useState("");
+  const [error, setError] = useState("");
+  const [imagePreview, setImagePreview] = useState<{ url: string; title: string } | null>(null);
+  const [imagePreviewLoading, setImagePreviewLoading] = useState(false);
+  const imagePreviewUrlRef = useRef<string | null>(null);
+  const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+
+  const closeImagePreview = useCallback(() => {
+    if (imagePreviewUrlRef.current) {
+      URL.revokeObjectURL(imagePreviewUrlRef.current);
+      imagePreviewUrlRef.current = null;
+    }
+    setImagePreview(null);
+    setImagePreviewLoading(false);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrlRef.current) {
+        URL.revokeObjectURL(imagePreviewUrlRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!imagePreview && !imagePreviewLoading) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeImagePreview();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [imagePreview, imagePreviewLoading, closeImagePreview]);
+
+  const loadAssets = useCallback(async () => {
+    if (!orderId.trim()) return;
+    setError("");
+    try {
+      const list = await api<OrderAssetRow[]>(apiPaths.executiveOrderAssets(orderId));
+      setAssets(list);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [orderId]);
+
+  useEffect(() => {
+    loadAssets();
+  }, [loadAssets]);
+
+  function canExecutiveDeleteAsset(assetType: string): boolean {
+    return assetType === "SOURCE_PHOTO" || assetType === "CUSTOMER_PHOTO";
+  }
+
+  async function viewAsset(assetId: string, r2Key: string) {
+    closeImagePreview();
+    setError("");
+    setImagePreviewLoading(true);
+    try {
+      const path = apiPaths.executiveOrderAssetFile(orderId, assetId, "inline");
+      const blob = await apiBinaryGet(path);
+      const url = URL.createObjectURL(blob);
+      imagePreviewUrlRef.current = url;
+      setImagePreview({ url, title: fileLabelFromKey(r2Key) });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setImagePreviewLoading(false);
+    }
+  }
+
+  async function downloadAsset(assetId: string, r2Key: string) {
+    setError("");
+    try {
+      const path = apiPaths.executiveOrderAssetFile(orderId, assetId, "attachment");
+      const blob = await apiBinaryGet(path);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileLabelFromKey(r2Key);
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function deleteAsset(assetId: string, assetType: string) {
+    if (!canExecutiveDeleteAsset(assetType)) return;
+    if (!window.confirm("Delete this file from the order and from storage? This cannot be undone.")) {
+      return;
+    }
+    setError("");
+    setStatus("");
+    setDeletingAssetId(assetId);
+    try {
+      await api(apiPaths.executiveOrderAssetDelete(orderId, assetId), { method: "DELETE" });
+      setStatus("File removed.");
+      await loadAssets();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeletingAssetId(null);
+    }
+  }
+
+  async function uploadSourceAsset(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setStatus("");
+    try {
+      await api(apiPaths.executiveOrderAsset(orderId, "source"), {
+        method: "POST",
+        body: JSON.stringify({ r2Key: assetKey }),
+      });
+      setStatus("Storage key linked.");
+      setAssetKey("");
+      await loadAssets();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  function removeSourceFileAt(index: number) {
+    setSourceFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function clearSourceFileSelection() {
+    setSourceFiles([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function uploadSourceFile(e: FormEvent) {
+    e.preventDefault();
+    setError("");
+    setStatus("");
+    const files = sourceFiles;
+    if (!orderId.trim() || files.length === 0) {
+      setError("Choose one or more images to upload.");
+      return;
+    }
+    setUploadBusy(true);
+    setUploadProgress({ current: 0, total: files.length });
+    const failures: string[] = [];
+    let ok = 0;
+    try {
+      for (let i = 0; i < files.length; i++) {
+        setUploadProgress({ current: i + 1, total: files.length });
+        const file = files[i];
+        try {
+          const fd = new FormData();
+          fd.append("file", file);
+          await apiUpload(apiPaths.executiveOrderAsset(orderId, "source"), fd);
+          ok++;
+        } catch (err) {
+          failures.push(`${file.name}: ${(err as Error).message}`);
+        }
+      }
+    } finally {
+      setUploadBusy(false);
+      setUploadProgress(null);
+    }
+    await loadAssets();
+    if (ok > 0) {
+      setStatus(
+        failures.length === 0
+          ? `Uploaded ${ok} image${ok === 1 ? "" : "s"} successfully.`
+          : `Uploaded ${ok} of ${files.length}. Some could not be uploaded — see the error below.`,
+      );
+    }
+    if (failures.length > 0) {
+      setError(failures.join(" "));
+    }
+    if (ok === files.length) {
+      clearSourceFileSelection();
+    }
+  }
+
+  if (!orderId) {
+    return (
+      <div className="card">
+        <p className="error">Missing order id.</p>
+        <Link to="/executive/orders">← Orders</Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-stack">
+      <nav className="breadcrumb">
+        <Link to="/executive/orders">Orders</Link>
+        <span className="breadcrumb-sep">/</span>
+        <span className="mono">{orderId}</span>
+        <span className="breadcrumb-sep">/</span>
+        <span>Source photos</span>
+      </nav>
+      <PageHeader
+        kicker="Print files"
+        title="Source photos"
+        description="Everything the lab needs before design starts. Files already on this order (including the customer frame image from confirm) appear below. Add more from disk or register a storage key."
+        actions={
+          <button type="button" className="btn btn--secondary btn--sm" onClick={() => loadAssets()}>
+            Refresh list
+          </button>
+        }
+      />
+      {status && <div className="flash flash--success" role="status">{status}</div>}
+      {error && <div className="flash flash--error" role="alert">{error}</div>}
+
+      <div className="card">
+        <h3>Files on this order</h3>
+        <p className="muted">Framing images from confirm order show as &quot;Customer image (frame)&quot; (there may be several). Source uploads show as &quot;Source photo (print)&quot;.</p>
+        <div className="table-wrap table-wrap--scroll">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Storage key</th>
+                <th>Added</th>
+                <th className="td-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assets.map((a) => (
+                <tr key={a.id}>
+                  <td className="td-strong">{assetTypeLabel(a.assetType)}</td>
+                  <td className="td-mono">{a.r2Key}</td>
+                  <td className="date-cell">{formatShortDateTime(a.createdAt)}</td>
+                  <td className="td-actions">
+                    <div className="inline-actions">
+                      <button type="button" className="btn btn--ghost btn--sm" onClick={() => viewAsset(a.id, a.r2Key)}>
+                        View
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn--secondary btn--sm"
+                        onClick={() => downloadAsset(a.id, a.r2Key)}
+                      >
+                        Download
+                      </button>
+                      {canExecutiveDeleteAsset(a.assetType) && (
+                        <button
+                          type="button"
+                          className="btn btn--danger btn--sm"
+                          disabled={deletingAssetId !== null}
+                          onClick={() => deleteAsset(a.id, a.assetType)}
+                        >
+                          {deletingAssetId === a.id ? (
+                            <>
+                              <span className="spinner spinner--sm" aria-hidden />
+                              Deleting…
+                            </>
+                          ) : (
+                            "Delete"
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {assets.length === 0 && (
+                <tr className="empty-row">
+                  <td colSpan={4}>No files yet. Confirm the order with a customer image, or upload a source photo below.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          <div className="table-footer">
+            <p className="total-info">
+              Showing <strong>{assets.length}</strong> file{assets.length === 1 ? "" : "s"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <h3>Upload from computer</h3>
+        <p className="muted">
+          JPEG / PNG / WebP, up to about 32MB each. Select <strong>multiple images</strong> at once (Ctrl/Cmd+click or Shift+click in the file dialog). Same flow uses cloud storage in production.
+        </p>
+        <form className="stack" onSubmit={uploadSourceFile} aria-busy={uploadBusy}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,.jpg,.jpeg,.png,.webp"
+            multiple
+            disabled={uploadBusy}
+            onChange={(e) => setSourceFiles(Array.from(e.target.files ?? []))}
+          />
+          {sourceFiles.length > 0 && (
+            <>
+              <p className="muted">
+                {sourceFiles.length} image{sourceFiles.length === 1 ? "" : "s"} selected
+              </p>
+              <ul className="file-pick-list">
+                {sourceFiles.map((f, i) => (
+                  <li key={`${f.name}-${f.size}-${i}`}>
+                    <span className="small td-mono">{f.name}</span>
+                    <button
+                      type="button"
+                      className="btn btn--ghost btn--sm"
+                      disabled={uploadBusy}
+                      onClick={() => removeSourceFileAt(i)}
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              {!uploadBusy && (
+                <button type="button" className="btn btn--ghost btn--sm" onClick={clearSourceFileSelection}>
+                  Clear all
+                </button>
+              )}
+            </>
+          )}
+          <button type="submit" className="btn btn--primary btn--block" disabled={uploadBusy || sourceFiles.length === 0}>
+            {uploadBusy && uploadProgress ? (
+              <>
+                <span className="spinner" aria-hidden />
+                Uploading {uploadProgress.current} / {uploadProgress.total}…
+              </>
+            ) : (
+              `Upload${sourceFiles.length > 1 ? ` ${sourceFiles.length} images` : sourceFiles.length === 1 ? " image" : ""}`
+            )}
+          </button>
+        </form>
+      </div>
+      <div className="card">
+        <h3>Already in storage?</h3>
+        <p className="muted">Paste the object key if the file was uploaded elsewhere.</p>
+        <form className="stack" onSubmit={uploadSourceAsset}>
+          <input placeholder="Key or path" value={assetKey} onChange={(e) => setAssetKey(e.target.value)} />
+          <button type="submit" className="btn btn--secondary">
+            Register key
+          </button>
+        </form>
+      </div>
+      <Link to="/executive/orders" className="secondary-link">← Back to orders</Link>
+
+      {(imagePreviewLoading || imagePreview) && (
+        <div
+          className="image-preview-backdrop"
+          role="presentation"
+          onClick={closeImagePreview}
+        >
+          <div
+            className="image-preview-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={imagePreview ? `Preview: ${imagePreview.title}` : "Loading preview"}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="image-preview-toolbar">
+              <span className="image-preview-title td-mono small">{imagePreview?.title ?? "…"}</span>
+              <button type="button" className="btn btn--secondary btn--sm" onClick={closeImagePreview}>
+                Close
+              </button>
+            </div>
+            <div className="image-preview-body">
+              {imagePreviewLoading && <p className="muted image-preview-loading">Loading image…</p>}
+              {imagePreview && (
+                <img src={imagePreview.url} alt={imagePreview.title} className="image-preview-img" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

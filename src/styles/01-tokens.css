@@ -1,0 +1,41 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg-deep: #080706;
+  --bg: #0f0e0c;
+  --bg-elevated: #161412;
+  --surface: #1a1815;
+  --surface-2: #222019;
+  --border: rgba(232, 220, 200, 0.08);
+  --border-strong: rgba(232, 220, 200, 0.16);
+  --text: #f4f0e8;
+  --text-secondary: #b8aea0;
+  --muted: #8a8174;
+  --accent: #d4a24c;
+  --accent-dim: #9a7635;
+  --accent-soft: rgba(212, 162, 76, 0.12);
+  --accent-glow: rgba(212, 162, 76, 0.18);
+  --danger: #e85d6f;
+  --danger-muted: rgba(232, 93, 111, 0.12);
+  --ok: #5cb88a;
+  --ok-muted: rgba(92, 184, 138, 0.12);
+  --warn: #e8c547;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 24px 48px rgba(0, 0, 0, 0.35);
+  --font: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --sidebar-width: 260px;
+
+  /* Photo framing / order table theme (matches studio mockup — crimson header band) */
+  --framing-crimson: #c0152a;
+  --framing-crimson-dark: #8b0e1e;
+  --framing-crimson-light: #e8192f;
+  --framing-crimson-pale: rgba(192, 21, 42, 0.14);
+  --framing-row-border: rgba(245, 236, 237, 0.12);
+  --framing-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+}
