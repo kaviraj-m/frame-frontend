@@ -1,0 +1,52 @@
+/* Smart attendance banner and panel status */
+
+.smart-attendance-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--surface-raised, #fff);
+}
+
+.smart-attendance-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent, #2563eb);
+  flex-shrink: 0;
+}
+
+.smart-attendance-banner--on_clock .smart-attendance-banner__dot {
+  background: var(--success, #16a34a);
+}
+
+.smart-attendance-banner--on_break .smart-attendance-banner__dot {
+  background: #d97706;
+}
+
+.smart-attendance-banner--away_warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.smart-attendance-banner--away_warning .smart-attendance-banner__dot {
+  background: #d97706;
+}
+
+.smart-attendance-banner--stopped_tab {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.smart-attendance-panel-status {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: var(--text-muted, #64748b);
+}

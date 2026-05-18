@@ -14,6 +14,8 @@ export type OrderListRow = {
   balanceAmount?: number;
   fullPayment?: number;
   paymentStatus?: string;
+  printStage?: string;
+  courierStage?: string;
   trackingNumber?: string;
   createdAt?: string;
   updatedAt?: string;

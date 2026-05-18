@@ -1,6 +1,8 @@
 import { Outlet } from "react-router-dom";
+import { SmartAttendanceBanner } from "../../components/SmartAttendanceBanner";
 import { DashboardShell } from "../../components/layout/DashboardShell";
 import type { ShellNavSection } from "../../components/layout/DashboardShell";
+import { SmartAttendanceProvider } from "../../context/SmartAttendanceContext";
 
 const navSections: ShellNavSection[] = [
   {
@@ -25,9 +27,12 @@ export function ExecutiveLayout() {
       navSections={navSections}
       hideTopbar
     >
-      <div className="executive-app">
-        <Outlet />
-      </div>
+      <SmartAttendanceProvider apiPrefix="/api/executive">
+        <div className="executive-app">
+          <SmartAttendanceBanner />
+          <Outlet />
+        </div>
+      </SmartAttendanceProvider>
     </DashboardShell>
   );
 }

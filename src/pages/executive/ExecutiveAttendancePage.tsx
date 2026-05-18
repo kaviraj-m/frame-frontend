@@ -7,9 +7,9 @@ export function ExecutiveAttendancePage() {
       <PageHeader
         kicker="Time"
         title="Attendance"
-        description="Clock in, break, clock out. Same panel for every executive on this device."
+        description="Clock in, take breaks, and clock out. Leaving this tab for more than 30 seconds ends your session automatically."
       />
-      <AttendancePanel apiPrefix="/api/executive" />
+      <AttendancePanel />
     </div>
   );
 }

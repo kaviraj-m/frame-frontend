@@ -1,33 +1,75 @@
-import { useAttendancePanel } from "../hooks/useAttendancePanel";
-import type { AttendanceApiPrefix } from "../lib/attendanceTypes";
+import { useSmartAttendanceContext } from "../context/SmartAttendanceContext";
 
-export function AttendancePanel({ apiPrefix }: { apiPrefix: AttendanceApiPrefix }) {
-  const { attendanceId, breakId, msg, error, startAttendance, endAttendance, startBreak, endBreak } =
-    useAttendancePanel(apiPrefix);
+export function AttendancePanel() {
+  const {
+    attendanceId,
+    breakId,
+    status,
+    awaySecondsLeft,
+    msg,
+    error,
+    hydrated,
+    startAttendance,
+    endAttendance,
+    startBreak,
+    endBreak,
+  } = useSmartAttendanceContext();
 
   return (
     <div className="card">
       <div className="section-head">
         <div>
-          <h3>Clock in & out</h3>
+          <h3>Clock in &amp; out</h3>
           <p className="muted attendance-panel__lead">
-            Start when you arrive, pause for breaks, end when you leave. Break minutes do not count toward hours.
+            Start when you begin work. If you switch away from this tab for more than 30 seconds, attendance
+            ends automatically. Use break when you pause; break time is excluded from hours.
           </p>
         </div>
       </div>
-      {msg && <div className="flash flash--success" role="status">{msg}</div>}
-      {error && <div className="flash flash--error" role="alert">{error}</div>}
+      {!hydrated && <p className="muted">Loading attendance state…</p>}
+      {status !== "idle" && (
+        <p className="smart-attendance-panel-status" role="status">
+          {status === "away_warning" && awaySecondsLeft != null
+            ? `Tab hidden — attendance stops in ${awaySecondsLeft}s unless you return.`
+            : status === "on_break"
+              ? "You are on break."
+              : status === "on_clock"
+                ? "You are on the clock."
+                : status === "stopped_tab"
+                  ? "Session ended because the tab was hidden too long. Start again when you return."
+                  : null}
+        </p>
+      )}
+      {msg && (
+        <div className="flash flash--success" role="status">
+          {msg}
+        </div>
+      )}
+      {error && (
+        <div className="flash flash--error" role="alert">
+          {error}
+        </div>
+      )}
       <dl className="kv attendance-panel__ids">
         <dt>Session</dt>
-        <dd><span className="mono">{attendanceId || "—"}</span></dd>
+        <dd>
+          <span className="mono">{attendanceId || "—"}</span>
+        </dd>
         <dt>Active break</dt>
-        <dd><span className="mono">{breakId || "—"}</span></dd>
+        <dd>
+          <span className="mono">{breakId || "—"}</span>
+        </dd>
       </dl>
       <div className="inline-actions attendance-panel__actions">
-        <button type="button" className="btn btn--primary btn--sm" onClick={startAttendance}>
+        <button type="button" className="btn btn--primary btn--sm" onClick={startAttendance} disabled={!hydrated}>
           Start attendance
         </button>
-        <button type="button" className="btn btn--secondary btn--sm" onClick={endAttendance} disabled={!attendanceId}>
+        <button
+          type="button"
+          className="btn btn--secondary btn--sm"
+          onClick={endAttendance}
+          disabled={!attendanceId}
+        >
           End attendance
         </button>
         <button type="button" className="btn btn--secondary btn--sm" onClick={startBreak} disabled={!attendanceId}>

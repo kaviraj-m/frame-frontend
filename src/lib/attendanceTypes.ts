@@ -5,7 +5,10 @@ export type AttendanceSession = {
   clientIp: string;
   startedAt: string;
   endedAt?: string;
+  endReason?: string;
 };
+
+export type AttendanceEndReason = "manual" | "tab_hidden";
 
 export type BreakSession = {
   id: string;

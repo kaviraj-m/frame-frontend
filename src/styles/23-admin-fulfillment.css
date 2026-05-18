@@ -1,0 +1,148 @@
+/* Admin fulfillment workflow (shared stepper + production queue filters) */
+
+.workflow-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.workflow-filter-chip {
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  background: var(--surface-raised, #fff);
+  color: var(--text-muted, #64748b);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.workflow-filter-chip:hover {
+  border-color: var(--accent, #2563eb);
+  color: var(--text, #0f172a);
+}
+
+.workflow-filter-chip--active {
+  background: var(--accent, #2563eb);
+  border-color: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.workflow-filter-chip__count {
+  margin-left: 6px;
+  opacity: 0.85;
+}
+
+.workflow-stepper {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .workflow-stepper {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.workflow-step {
+  border: 1px solid var(--border-subtle, #e2e8f0);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--surface-raised, #fff);
+  font-size: 0.8125rem;
+}
+
+.workflow-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--border-subtle, #e2e8f0);
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.workflow-step--active {
+  border-color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 1px var(--accent, #2563eb);
+}
+
+.workflow-step--active .workflow-step__num {
+  background: var(--accent, #2563eb);
+  color: #fff;
+}
+
+.workflow-step--done {
+  opacity: 0.85;
+  border-color: var(--success-border, #86efac);
+}
+
+.workflow-step--done .workflow-step__num {
+  background: var(--success, #16a34a);
+  color: #fff;
+}
+
+.workflow-step--locked {
+  opacity: 0.55;
+}
+
+.workflow-order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.workflow-cards {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .workflow-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.workflow-card__title {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.workflow-payment-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.workflow-payment-summary dt {
+  font-size: 0.75rem;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+}
+
+.workflow-payment-summary dd {
+  margin: 4px 0 0;
+  font-weight: 600;
+}
+
+.workflow-inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+
+.workflow-inline-form .field {
+  flex: 1 1 160px;
+  margin: 0;
+}

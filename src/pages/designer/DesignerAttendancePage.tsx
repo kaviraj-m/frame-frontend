@@ -7,9 +7,9 @@ export function DesignerAttendancePage() {
       <PageHeader
         kicker="Time"
         title="Attendance"
-        description="Same clock as production: start shift, pause for tea, finish the day."
+        description="Start shift, take breaks, and end the day. Leaving this tab for more than 30 seconds ends your session automatically."
       />
-      <AttendancePanel apiPrefix="/api/designer" />
+      <AttendancePanel />
     </div>
   );
 }

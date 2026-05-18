@@ -8,6 +8,7 @@ import { AdminNotifyPage } from "../pages/admin/AdminNotifyPage";
 import { AdminOrdersAllPage } from "../pages/admin/AdminOrdersAllPage";
 import { AdminOrdersProductionPage } from "../pages/admin/AdminOrdersProductionPage";
 import { AdminOrderPatchPage } from "../pages/admin/AdminOrderPatchPage";
+import { AdminOrderFulfillmentPage } from "../pages/admin/AdminOrderFulfillmentPage";
 import { AdminAttendanceReportPage } from "../pages/admin/AdminAttendanceReportPage";
 
 export const adminNestedRoutes = [
@@ -20,6 +21,7 @@ export const adminNestedRoutes = [
   <Route key="adm-notify" path="notify" element={<AdminNotifyPage />} />,
   <Route key="adm-orders-production" path="orders/production" element={<AdminOrdersProductionPage />} />,
   <Route key="adm-orders-patch" path="orders/patch" element={<AdminOrderPatchPage />} />,
+  <Route key="adm-orders-fulfill" path="orders/:orderId" element={<AdminOrderFulfillmentPage />} />,
   <Route key="adm-orders" path="orders" element={<AdminOrdersAllPage />} />,
   <Route key="adm-attendance-report" path="reports/attendance" element={<AdminAttendanceReportPage />} />,
 ];

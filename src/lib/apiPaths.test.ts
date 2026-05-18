@@ -15,15 +15,35 @@ describe("apiPaths", () => {
     expect(apiPaths.executiveOrderAsset(id, "source")).toBe("/api/executive/orders/ORD-1/assets/source");
     expect(apiPaths.executiveOrderAsset(id, "customer")).toBe("/api/executive/orders/ORD-1/assets/customer");
     expect(apiPaths.executiveOrderAssetFile(id, "ast-1", "inline")).toBe(
-      "/api/executive/files/ORD-1/ast-1?disposition=inline",
+      "/api/executive/orders/ORD-1/files/ast-1?disposition=inline",
     );
     expect(apiPaths.executiveOrderAssetFile(id, "ast-2", "attachment")).toBe(
-      "/api/executive/files/ORD-1/ast-2?disposition=attachment",
+      "/api/executive/orders/ORD-1/files/ast-2?disposition=attachment",
     );
-    expect(apiPaths.executiveOrderAssetDelete(id, "ast-9")).toBe("/api/executive/files/ORD-1/ast-9");
+    expect(apiPaths.executiveOrderAssetDelete(id, "ast-9")).toBe(
+      "/api/executive/orders/ORD-1/files/ast-9",
+    );
   });
 
-  it("uses designer preview-assets URL for link and multipart upload", () => {
-    expect(apiPaths.designerPreviewAssets("O-2")).toBe("/api/designer/preview-assets/O-2");
+  it("uses admin fulfillment URLs", () => {
+    const id = "O-ADM";
+    expect(apiPaths.adminOrder(id)).toBe("/api/admin/orders/O-ADM");
+    expect(apiPaths.adminOrderPrintDone(id)).toBe("/api/admin/orders/O-ADM/print-done");
+    expect(apiPaths.adminOrderBalancePayment(id)).toBe("/api/admin/orders/O-ADM/balance-payment");
+    expect(apiPaths.adminOrderBalancePaid(id)).toBe("/api/admin/orders/O-ADM/balance-paid");
+    expect(apiPaths.adminOrderDispatch(id)).toBe("/api/admin/orders/O-ADM/dispatch");
+    expect(apiPaths.adminOrderComplete(id)).toBe("/api/admin/orders/O-ADM/complete");
+  });
+
+  it("uses designer order work URLs", () => {
+    const id = "O-2";
+    expect(apiPaths.designerPreviewAssets(id)).toBe("/api/designer/orders/O-2/preview-assets");
+    expect(apiPaths.designerOrder(id)).toBe("/api/designer/orders/O-2");
+    expect(apiPaths.designerOrderAssets(id)).toBe("/api/designer/orders/O-2/assets");
+    expect(apiPaths.designerOrderAssetFile(id, "ast-1", "inline")).toBe(
+      "/api/designer/orders/O-2/files/ast-1?disposition=inline",
+    );
+    expect(apiPaths.designerTakeOrder(id)).toBe("/api/designer/orders/O-2/take");
+    expect(apiPaths.designerOrderDecision(id)).toBe("/api/designer/orders/O-2/decision");
   });
 });
