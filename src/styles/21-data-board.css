@@ -78,6 +78,103 @@
   box-shadow: 0 0 0 2px var(--accent-glow);
 }
 
+/* Filter chips (shared: executive orders, designer queue) */
+.filter-chips,
+.designer-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filter-chip,
+.designer-filter-chip {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.filter-chip:hover,
+.designer-filter-chip:hover {
+  border-color: rgba(212, 162, 76, 0.45);
+  color: var(--text);
+}
+
+.filter-chip--active,
+.designer-filter-chip--active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.data-board__filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.data-board__filter-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  align-self: center;
+  margin-right: 4px;
+}
+
+.data-board__filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.data-board__filter-field-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.data-board__filter-input,
+.data-board__filter-select {
+  padding: 8px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.83rem;
+  background: var(--surface-2);
+  color: var(--text);
+  font-family: inherit;
+  min-height: 36px;
+}
+
+.data-board__filter-input:focus,
+.data-board__filter-select:focus {
+  border-color: rgba(212, 162, 76, 0.45);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  outline: none;
+}
+
+.data-board__filter-select {
+  min-width: 140px;
+}
+
+.data-board__filter-date {
+  color-scheme: dark;
+  cursor: pointer;
+}
+
+.data-board__filter-date::-webkit-calendar-picker-indicator {
+  filter: invert(0.85);
+  cursor: pointer;
+}
+
 .data-board__search::placeholder {
   color: var(--muted);
 }
@@ -544,69 +641,86 @@
 }
 
 /*
- * Executive list boards (Queries, Orders): match framing mockup — solid crimson header,
- * near-black body with hairline row rules, status badges, stacked actions.
- * Scoped to .executive-app .data-board so detail pages (e.g. assets in a card) stay unchanged.
+ * Executive + admin list boards (Queries, Orders): solid crimson header, near-black rows.
+ * Scoped to .executive-app / .admin-app .data-board so other cards stay unchanged.
  */
-.executive-app .data-board .table-wrap {
+.executive-app .data-board .table-wrap,
+.admin-app .data-board .table-wrap {
   background: var(--bg-deep);
   border-color: rgba(245, 236, 237, 0.14);
 }
 
-.executive-app .data-board .table-footer {
+.executive-app .data-board .table-footer,
+.admin-app .data-board .table-footer {
   background: var(--bg-deep);
   border-top-color: rgba(245, 236, 237, 0.1);
 }
 
-.executive-app .data-board .data-table thead {
+.executive-app .data-board .data-table thead,
+.admin-app .data-board .data-table thead {
   background: #b91c1c;
 }
 
-.executive-app .data-board .data-table tbody tr:not(.empty-row) td {
+.executive-app .data-board .data-table thead th,
+.admin-app .data-board .data-table thead th {
+  background: transparent;
+}
+
+.executive-app .data-board .data-table tbody tr:not(.empty-row) td,
+.admin-app .data-board .data-table tbody tr:not(.empty-row) td {
   background: var(--bg-deep);
   border-bottom: 1px solid rgba(245, 236, 237, 0.1);
   color: var(--text-secondary);
 }
 
-.executive-app .data-board .data-table tbody tr:not(.empty-row) .td-strong {
+.executive-app .data-board .data-table tbody tr:not(.empty-row) .td-strong,
+.admin-app .data-board .data-table tbody tr:not(.empty-row) .td-strong {
   color: var(--text);
 }
 
-.executive-app .data-board .data-table tbody tr:not(.empty-row) .td-order-id {
+.executive-app .data-board .data-table tbody tr:not(.empty-row) .td-order-id,
+.admin-app .data-board .data-table tbody tr:not(.empty-row) .td-order-id {
   color: var(--framing-crimson-light);
   font-weight: 700;
 }
 
-.executive-app .data-board .data-table tbody tr:not(.empty-row) .date-cell {
+.executive-app .data-board .data-table tbody tr:not(.empty-row) .date-cell,
+.admin-app .data-board .data-table tbody tr:not(.empty-row) .date-cell {
   color: var(--text-secondary);
 }
 
-.executive-app .data-board .data-table tbody tr:hover:not(.empty-row) td {
+.executive-app .data-board .data-table tbody tr:hover:not(.empty-row) td,
+.admin-app .data-board .data-table tbody tr:hover:not(.empty-row) td {
   background: rgba(192, 21, 42, 0.12);
   color: var(--text);
 }
 
-.executive-app .data-board .data-table tbody tr.is-selected:not(.empty-row) td {
+.executive-app .data-board .data-table tbody tr.is-selected:not(.empty-row) td,
+.admin-app .data-board .data-table tbody tr.is-selected:not(.empty-row) td {
   background: rgba(192, 21, 42, 0.16);
   color: var(--text);
 }
 
-.executive-app .data-board .data-table tbody tr.is-selected:hover:not(.empty-row) td {
+.executive-app .data-board .data-table tbody tr.is-selected:hover:not(.empty-row) td,
+.admin-app .data-board .data-table tbody tr.is-selected:hover:not(.empty-row) td {
   background: rgba(192, 21, 42, 0.18);
 }
 
-.executive-app .data-board .data-table tbody tr.empty-row td {
+.executive-app .data-board .data-table tbody tr.empty-row td,
+.admin-app .data-board .data-table tbody tr.empty-row td {
   background: transparent;
   border-bottom: none;
 }
 
 /* Keep a rule under the last data row before the footer strip */
-.executive-app .data-board .data-table tbody tr:not(.empty-row):last-child td {
+.executive-app .data-board .data-table tbody tr:not(.empty-row):last-child td,
+.admin-app .data-board .data-table tbody tr:not(.empty-row):last-child td {
   border-bottom: 1px solid rgba(245, 236, 237, 0.1);
 }
 
 /* Status / yes-no badges: dark chip, white label, crisp border (orders mockup) */
-.executive-app .data-board .pill.pill--neutral {
+.executive-app .data-board .pill.pill--neutral,
+.admin-app .data-board .pill.pill--neutral {
   border-radius: var(--radius-sm);
   color: rgba(255, 255, 255, 0.92);
   background: rgba(0, 0, 0, 0.45);
@@ -615,7 +729,8 @@
   letter-spacing: 0.02em;
 }
 
-.executive-app .data-board .data-table .td-actions .inline-actions {
+.executive-app .data-board .data-table .td-actions .inline-actions,
+.admin-app .data-board .data-table .td-actions .inline-actions {
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -626,7 +741,14 @@
 
 .executive-app .data-board .data-table .td-actions .inline-actions > .btn,
 .executive-app .data-board .data-table .td-actions .inline-actions > a.small-btn,
-.executive-app .data-board .data-table .td-actions .inline-actions > a.btn {
+.executive-app .data-board .data-table .td-actions .inline-actions > a.small-btn--whatsapp,
+.executive-app .data-board .data-table .td-actions .inline-actions > button.small-btn--whatsapp,
+.executive-app .data-board .data-table .td-actions .inline-actions > a.btn,
+.admin-app .data-board .data-table .td-actions .inline-actions > .btn,
+.admin-app .data-board .data-table .td-actions .inline-actions > a.small-btn,
+.admin-app .data-board .data-table .td-actions .inline-actions > a.small-btn--whatsapp,
+.admin-app .data-board .data-table .td-actions .inline-actions > button.small-btn--whatsapp,
+.admin-app .data-board .data-table .td-actions .inline-actions > a.btn {
   width: 100%;
   justify-content: center;
   box-sizing: border-box;

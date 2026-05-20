@@ -2,14 +2,16 @@ import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, apiUpload } from "../lib/api";
 import { apiPaths } from "../lib/apiPaths";
+import { cataloguePrice } from "../lib/framePricing";
+import {
+  firstError,
+  validatePositiveNumber,
+  validateRequired,
+} from "../lib/fieldValidation";
 import type { ExecutiveOrderQuerySummary } from "../pages/executive/executiveOrderTypes";
 import type { ExecutivePricingRow } from "../pages/executive/executivePricingTypes";
 
 type ConfirmOrderResponse = { orderId: string };
-
-function fileKey(f: File): string {
-  return `${f.name}-${f.size}-${f.lastModified}`;
-}
 
 export function useExecutiveOrderNew(queryId: string) {
   const navigate = useNavigate();
@@ -20,11 +22,13 @@ export function useExecutiveOrderNew(queryId: string) {
   const [frameSize, setFrameSize] = useState("");
   const [addressDetails, setAddressDetails] = useState("");
   const [advancePayment, setAdvancePayment] = useState("100");
-  const [paymentMode, setPaymentMode] = useState("CASH");
+  const [paymentMode, setPaymentMode] = useState("");
   const [framingImages, setFramingImages] = useState<File[]>([]);
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,11 +54,6 @@ export function useExecutiveOrderNew(queryId: string) {
             "No active frame sizes in the catalogue. An admin must add pricing under Admin → Frame prices.",
           );
           setFrameSize("");
-        } else {
-          setFrameSize((prev) => {
-            if (prev && pricing.some((p) => p.frameSize === prev)) return prev;
-            return pricing[0].frameSize;
-          });
         }
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -67,30 +66,35 @@ export function useExecutiveOrderNew(queryId: string) {
     };
   }, [queryId]);
 
-  function addFramingImages(files: FileList | null) {
-    if (!files?.length) return;
-    setFramingImages((prev) => {
-      const seen = new Set(prev.map(fileKey));
-      const next = [...prev];
-      for (const f of Array.from(files)) {
-        const k = fileKey(f);
-        if (!seen.has(k)) {
-          seen.add(k);
-          next.push(f);
-        }
-      }
-      return next;
+  function selectPaymentMode(mode: string) {
+    setPaymentMode(mode);
+    setPaymentProofFile(null);
+    setFrameSize((prev) => {
+      if (prev && pricingOptions.some((p) => p.frameSize === prev)) return prev;
+      return pricingOptions[0]?.frameSize ?? "";
     });
-  }
-
-  function removeFramingImage(index: number) {
-    setFramingImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function createOrder(e: FormEvent) {
     e.preventDefault();
     setError("");
     setStatus("");
+    const paymentErr =
+      paymentMode === "CASH" || paymentMode === "ONLINE"
+        ? null
+        : "Select payment mode (cash or online)";
+    const addressErr = validateRequired(addressDetails, "Delivery address");
+    const advanceErr = validatePositiveNumber(advancePayment, "Advance payment");
+    const errors: Record<string, string> = {};
+    if (paymentErr) errors.paymentMode = paymentErr;
+    if (addressErr) errors.address = addressErr;
+    if (advanceErr) errors.advance = advanceErr;
+    setFieldErrors(errors);
+    const validationError = firstError(paymentErr, addressErr, advanceErr);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     try {
       if (pricingOptions.length === 0 || !frameSize.trim()) {
         setError(
@@ -99,29 +103,47 @@ export function useExecutiveOrderNew(queryId: string) {
         );
         return;
       }
+      const row = pricingOptions.find((p) => p.frameSize === frameSize);
+      if (!row) {
+        setError("Selected frame size is not in the catalogue.");
+        return;
+      }
+      const fullPrice = cataloguePrice(row, paymentMode);
+      if (Number(advancePayment) > fullPrice) {
+        setError("Advance payment cannot exceed the full price for this frame size and payment mode.");
+        setFieldErrors((prev) => ({
+          ...prev,
+          advance: "Advance cannot exceed full price",
+        }));
+        return;
+      }
       if (framingImages.length === 0) {
         setError("Add at least one image for framing before confirming.");
         return;
       }
+      if (paymentMode === "ONLINE" && !paymentProofFile) {
+        setError("Online payment requires a payment screenshot upload.");
+        return;
+      }
+
+      setSubmitting(true);
 
       let proofKey = "";
       if (paymentMode === "ONLINE") {
-        if (!paymentProofFile) {
-          setError("Online payment requires a payment screenshot upload.");
-          return;
-        }
+        setStatus("Uploading payment screenshot…");
         const fd = new FormData();
         fd.append("file", paymentProofFile);
         const up = await apiUpload<{ r2Key: string }>(apiPaths.executiveUploads, fd);
         proofKey = up.r2Key;
       }
 
+      setStatus("Confirming order…");
       const order = await api<ConfirmOrderResponse>(apiPaths.executiveOrders, {
         method: "POST",
         body: JSON.stringify({
           queryId,
           frameSize,
-          addressDetails: addressDetails || "—",
+          addressDetails: addressDetails.trim(),
           photos: [],
           advancePayment: Number(advancePayment),
           paymentMode,
@@ -129,9 +151,10 @@ export function useExecutiveOrderNew(queryId: string) {
         }),
       });
 
-      for (const file of framingImages) {
+      for (let i = 0; i < framingImages.length; i++) {
+        setStatus(`Uploading framing image ${i + 1} of ${framingImages.length}…`);
         const custFd = new FormData();
-        custFd.append("file", file);
+        custFd.append("file", framingImages[i]);
         await apiUpload(apiPaths.executiveOrderAsset(order.orderId, "customer"), custFd);
       }
 
@@ -139,6 +162,8 @@ export function useExecutiveOrderNew(queryId: string) {
       navigate("/executive/orders");
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -154,14 +179,17 @@ export function useExecutiveOrderNew(queryId: string) {
     advancePayment,
     setAdvancePayment,
     paymentMode,
-    setPaymentMode,
+    setPaymentMode: selectPaymentMode,
     framingImages,
-    addFramingImages,
-    removeFramingImage,
+    setFramingImages,
     paymentProofFile,
     setPaymentProofFile,
     status,
     error,
+    fieldErrors,
+    clearFieldError: (key: string) =>
+      setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: "" } : prev)),
+    submitting,
     createOrder,
   };
 }

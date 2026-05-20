@@ -22,6 +22,8 @@ export function assetTypeLabel(t: string): string {
       return "Design preview";
     case "FINAL_IMAGE":
       return "Final image";
+    case "BALANCE_PAYMENT_PROOF":
+      return "Balance payment proof";
     default:
       return t;
   }

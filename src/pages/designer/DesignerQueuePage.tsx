@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
+import { OrderIdCell } from "../../components/orders/OrderIdCell";
+import { OrderRowAgeLegend } from "../../components/orders/OrderRowAgeLegend";
+import { orderRowAgeDataAttr, orderRowClassName } from "../../lib/orderCreatedAge";
 import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { api } from "../../lib/api";
@@ -115,6 +118,10 @@ export function DesignerQueuePage() {
           </div>
         </div>
 
+        <div className="mb-3 px-0.5">
+          <OrderRowAgeLegend />
+        </div>
+
         {error && (
           <div className="flash flash--error" role="alert">
             {error}
@@ -143,8 +150,14 @@ export function DesignerQueuePage() {
               </thead>
               <tbody>
                 {filtered.map((o) => (
-                  <tr key={o.orderId}>
-                    <td className="td-mono td-order-id">{o.orderId}</td>
+                  <tr
+                    key={o.orderId}
+                    className={orderRowClassName(o.createdAt, o.status)}
+                    data-order-age={orderRowAgeDataAttr(o.createdAt, o.status)}
+                  >
+                    <td className="td-mono">
+                      <OrderIdCell orderId={o.orderId} />
+                    </td>
                     <td className="td-mono td-muted-id">{o.queryId}</td>
                     <td className="td-strong">{o.customerUsername?.trim() ? o.customerUsername : "—"}</td>
                     <td>{o.customerPhoneNumber?.trim() ? o.customerPhoneNumber : "—"}</td>

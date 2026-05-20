@@ -1,11 +1,17 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../../lib/api";
+import { api, apiBinaryGet } from "../../lib/api";
 import { apiPaths } from "../../lib/apiPaths";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { formatShortDateTime } from "../../lib/formatDisplay";
 
-type RemarkEntry = { id?: string; queryId: string; body: string; createdAt: string };
+type RemarkEntry = {
+  id?: string;
+  queryId: string;
+  body: string;
+  imageKey?: string;
+  createdAt: string;
+};
 
 type QueryDetail = {
   queryId: string;
@@ -16,11 +22,40 @@ type QueryDetail = {
   remarkHistory: RemarkEntry[];
 };
 
+function RemarkImage({ queryId, remarkId }: { queryId: string; remarkId: string }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    (async () => {
+      try {
+        const blob = await apiBinaryGet(apiPaths.executiveQueryRemarkImage(queryId, remarkId));
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(blob);
+        setSrc(objectUrl);
+      } catch {
+        if (!cancelled) setFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [queryId, remarkId]);
+
+  if (failed) return <p className="small muted">Could not load image.</p>;
+  if (!src) return <p className="small muted">Loading image…</p>;
+  return <img className="remark-timeline__image" src={src} alt="Remark attachment" />;
+}
+
 export function ExecutiveQueryRemarksPage() {
   const { queryId: queryIdParam } = useParams();
   const queryId = queryIdParam ? decodeURIComponent(queryIdParam) : "";
   const [detail, setDetail] = useState<QueryDetail | null>(null);
   const [newRemark, setNewRemark] = useState("");
+  const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
 
@@ -53,19 +88,22 @@ export function ExecutiveQueryRemarksPage() {
     setStatus("");
     const text = newRemark.trim();
     if (!text) {
-      setError("Enter a remark to save.");
+      setError("Enter a remark.");
       return;
     }
+    setSaving(true);
     try {
       await api(apiPaths.executiveQueryRemarks(queryId), {
         method: "PUT",
         body: JSON.stringify({ remarks: text }),
       });
       setNewRemark("");
-      setStatus("Remark saved with date and time.");
+      setStatus("Saved.");
       await loadDetail();
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -118,7 +156,12 @@ export function ExecutiveQueryRemarksPage() {
                 className="remark-timeline__item"
               >
                 <div className="remark-timeline__time small">{formatShortDateTime(row.createdAt)}</div>
-                <div className="remark-timeline__body">{row.body}</div>
+                {row.body ? <div className="remark-timeline__body">{row.body}</div> : null}
+                {row.imageKey && row.id ? (
+                  <RemarkImage queryId={queryId} remarkId={row.id} />
+                ) : row.imageKey ? (
+                  <p className="small muted">(Photo attached)</p>
+                ) : null}
               </li>
             ))}
           </ul>
@@ -135,12 +178,13 @@ export function ExecutiveQueryRemarksPage() {
             rows={5}
             value={newRemark}
             onChange={(e) => setNewRemark(e.target.value)}
-            placeholder="What happened on this contact? This will be saved with the current date and time."
+            placeholder="What happened on this contact? Saved with date and time."
+            disabled={saving}
           />
         </label>
         <div className="form-actions">
-          <button type="submit" className="btn btn--primary" disabled={!detail}>
-            Save remark
+          <button type="submit" className="btn btn--primary" disabled={!detail || saving}>
+            {saving ? "Saving…" : "Save"}
           </button>
           <Link to="/executive/queries" className="secondary-link">
             Back to list

@@ -1,8 +1,12 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { DesignerWorkflowStepper } from "../../components/designer/DesignerWorkflowStepper";
+import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 import { OrderAssetsPanel } from "../../components/orders/OrderAssetsPanel";
 import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
+import { RemarkTimeline, type RemarkEntry } from "../../components/remarks/RemarkTimeline";
+import { FilePickField } from "../../components/ui/FilePickField";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { api, apiBinaryGet, apiUpload } from "../../lib/api";
 import { apiPaths } from "../../lib/apiPaths";
@@ -13,6 +17,7 @@ import {
   isOrderGoneError,
 } from "../../lib/designerWorkflow";
 import { fileLabelFromKey, isExecutiveSourceAsset, type OrderAssetRow } from "../../lib/orderAssetLabels";
+import { validateRemarkOrImage } from "../../lib/fieldValidation";
 import type { OrderListRow } from "../../lib/orderListTypes";
 
 export function DesignerOrderWorkPage() {
@@ -25,12 +30,18 @@ export function DesignerOrderWorkPage() {
   const [loading, setLoading] = useState(true);
   const [orderGone, setOrderGone] = useState(false);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
-  const [remarks, setRemarks] = useState("");
+  const [previewRemarkHistory, setPreviewRemarkHistory] = useState<RemarkEntry[]>([]);
+  const [newPreviewRemark, setNewPreviewRemark] = useState("");
+  const [previewRemarkImage, setPreviewRemarkImage] = useState<File | null>(null);
+  const [previewRemarkSaving, setPreviewRemarkSaving] = useState(false);
+  const [decisionRemarks, setDecisionRemarks] = useState("");
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const { confirmAction, dialogProps } = useConfirmDialog();
   const [uploadBusy, setUploadBusy] = useState(false);
   const [downloadAllBusy, setDownloadAllBusy] = useState(false);
+  const [waBusy, setWaBusy] = useState(false);
   const [imagePreview, setImagePreview] = useState<{ url: string; title: string } | null>(null);
   const [imagePreviewLoading, setImagePreviewLoading] = useState(false);
   const imagePreviewUrlRef = useRef<string | null>(null);
@@ -63,8 +74,11 @@ export function DesignerOrderWorkPage() {
 
   const loadOrder = useCallback(async () => {
     if (!orderId.trim()) return;
-    const o = await api<OrderListRow>(apiPaths.designerOrder(orderId));
-    setOrder(o);
+    const detail = await api<OrderListRow & { previewRemarkHistory?: RemarkEntry[] }>(
+      apiPaths.designerOrder(orderId),
+    );
+    setOrder(detail);
+    setPreviewRemarkHistory(detail.previewRemarkHistory ?? []);
     setOrderGone(false);
   }, [orderId]);
 
@@ -167,6 +181,57 @@ export function DesignerOrderWorkPage() {
     }
   }
 
+  async function openWhatsAppToCustomer() {
+    if (!orderId.trim()) return;
+    setWaBusy(true);
+    setError("");
+    try {
+      const link = await api<{ redirectUrl: string }>(apiPaths.designerOrderWhatsApp(orderId));
+      window.open(link.redirectUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setWaBusy(false);
+    }
+  }
+
+  async function savePreviewRemark(e: FormEvent) {
+    e.preventDefault();
+    const text = newPreviewRemark.trim();
+    const remarkErr = validateRemarkOrImage(newPreviewRemark, !!previewRemarkImage);
+    if (remarkErr) {
+      setError(remarkErr);
+      return;
+    }
+    setPreviewRemarkSaving(true);
+    setError("");
+    try {
+      let imageKey = "";
+      if (previewRemarkImage) {
+        const fd = new FormData();
+        fd.append("file", previewRemarkImage);
+        const up = await apiUpload<{ r2Key: string }>(apiPaths.designerUploads, fd);
+        imageKey = up.r2Key;
+      }
+      const detail = await api<OrderListRow & { previewRemarkHistory: RemarkEntry[] }>(
+        apiPaths.designerPreviewRemarks(orderId),
+        {
+          method: "PUT",
+          body: JSON.stringify({ remarks: text, imageKey }),
+        },
+      );
+      setOrder(detail);
+      setPreviewRemarkHistory(detail.previewRemarkHistory ?? []);
+      setNewPreviewRemark("");
+      setPreviewRemarkImage(null);
+      setStatus("Remark saved.");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setPreviewRemarkSaving(false);
+    }
+  }
+
   async function uploadPreview(e: FormEvent) {
     e.preventDefault();
     if (!previewFile) {
@@ -191,34 +256,41 @@ export function DesignerOrderWorkPage() {
     }
   }
 
-  async function decide(decision: "APPROVE" | "REJECT") {
-    const msg =
-      decision === "APPROVE"
-        ? "Mark this design as approved and send the order to admin for production?"
-        : "Mark that the customer requested a revision? You can upload a new preview after taking the order again.";
-    if (!window.confirm(msg)) return;
-
-    setBusy(true);
-    setError("");
-    setStatus("");
-    try {
-      const o = await api<OrderListRow>(apiPaths.designerOrderDecision(orderId), {
-        method: "POST",
-        body: JSON.stringify({ decision, remarks }),
-      });
-      setOrder(o);
-      if (decision === "APPROVE") {
-        setStatus("Design approved — order moves to admin for print and dispatch.");
-        setTimeout(() => nav("/designer/queue"), 1200);
-      } else {
-        setStatus("Revision required — take the order again, then upload a new preview.");
-        await loadAssets();
-      }
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
+  function decide(decision: "APPROVE" | "REJECT") {
+    const isApprove = decision === "APPROVE";
+    confirmAction(
+      {
+        title: isApprove ? "Approve design" : "Request revision",
+        message: isApprove
+          ? "Mark this design as approved and send the order to admin for production?"
+          : "Mark that the customer requested a revision? You can upload a new preview after taking the order again.",
+        confirmLabel: isApprove ? "Approve" : "Request revision",
+        variant: isApprove ? "default" : "danger",
+      },
+      async () => {
+        setBusy(true);
+        setError("");
+        setStatus("");
+        try {
+          const o = await api<OrderListRow>(apiPaths.designerOrderDecision(orderId), {
+            method: "POST",
+            body: JSON.stringify({ decision, remarks: decisionRemarks }),
+          });
+          setOrder(o);
+          if (decision === "APPROVE") {
+            setStatus("Design approved — order moves to admin for print and dispatch.");
+            setTimeout(() => nav("/designer/queue"), 1200);
+          } else {
+            setStatus("Revision required — take the order again, then upload a new preview.");
+            await loadAssets();
+          }
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setBusy(false);
+        }
+      },
+    );
   }
 
   if (!orderId) {
@@ -381,6 +453,47 @@ export function DesignerOrderWorkPage() {
         ) : (
           <p className="muted">Take the order first, or wait until revision is needed again.</p>
         )}
+        <div className="stack" style={{ marginTop: 20 }}>
+          <h4>Follow-up remarks</h4>
+          <p className="muted small">Notes while sharing previews with the customer. Each save adds a dated entry.</p>
+          <RemarkTimeline
+            entries={previewRemarkHistory}
+            imageUrl={(remarkId) => apiPaths.designerPreviewRemarkImage(orderId, remarkId)}
+            emptyMessage="No remarks yet."
+          />
+          <form className="stack" onSubmit={savePreviewRemark}>
+            <label>
+              New remark
+              <textarea
+                className="textarea"
+                rows={3}
+                value={newPreviewRemark}
+                onChange={(e) => setNewPreviewRemark(e.target.value)}
+                placeholder="What did you share or discuss with the customer?"
+                disabled={previewRemarkSaving || busy || uploadBusy}
+              />
+            </label>
+            <FilePickField
+              label={
+                <>
+                  Photo <span className="muted">(optional)</span>
+                </>
+              }
+              hint="Optional reference image for this note."
+              chooseLabel="Choose image"
+              files={previewRemarkImage ? [previewRemarkImage] : []}
+              onFilesChange={(files) => setPreviewRemarkImage(files[0] ?? null)}
+              disabled={previewRemarkSaving || busy || uploadBusy}
+            />
+            <button
+              type="submit"
+              className="btn btn--primary"
+              disabled={previewRemarkSaving || busy || uploadBusy || !order}
+            >
+              {previewRemarkSaving ? "Saving…" : "Save"}
+            </button>
+          </form>
+        </div>
         {previewAssets.length > 0 ? (
           <div style={{ marginTop: 16 }}>
             <OrderAssetsPanel
@@ -391,6 +504,14 @@ export function DesignerOrderWorkPage() {
               showTypeColumn={false}
               onView={viewAsset}
               onDownload={downloadAsset}
+              onWhatsApp={openWhatsAppToCustomer}
+              whatsappBusy={waBusy}
+              whatsappDisabled={busy || uploadBusy || !order?.customerPhoneNumber?.trim()}
+              whatsappTitle={
+                order?.customerPhoneNumber?.trim()
+                  ? `Open WhatsApp for ${order.customerUsername || "customer"} (new tab). Attach the preview file in chat.`
+                  : "Customer phone missing"
+              }
               emptyMessage=""
             />
           </div>
@@ -407,8 +528,8 @@ export function DesignerOrderWorkPage() {
             Remarks (optional)
             <input
               placeholder="e.g. Customer approved layout"
-              value={remarks}
-              onChange={(e) => setRemarks(e.target.value)}
+              value={decisionRemarks}
+              onChange={(e) => setDecisionRemarks(e.target.value)}
               disabled={busy || uploadBusy}
             />
           </label>
@@ -462,6 +583,7 @@ export function DesignerOrderWorkPage() {
           </div>
         </div>
       ) : null}
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

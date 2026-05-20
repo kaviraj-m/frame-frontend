@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { OrderIdCell } from "../../components/orders/OrderIdCell";
+import { OrderRowAgeLegend } from "../../components/orders/OrderRowAgeLegend";
+import { orderRowAgeDataAttr, orderRowClassName } from "../../lib/orderCreatedAge";
 import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
 import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
 import { api } from "../../lib/api";
@@ -263,6 +266,10 @@ export function AdminOrdersAllPage() {
             </div>
           </div>
 
+          <div className="mb-3 px-0.5">
+            <OrderRowAgeLegend />
+          </div>
+
           <div className="table-wrap table-wrap--scroll">
             <table className="data-table">
               <thead>
@@ -290,11 +297,16 @@ export function AdminOrdersAllPage() {
                   return (
                     <tr
                       key={row.orderId}
-                      className={isSelected ? "is-selected" : undefined}
+                      className={orderRowClassName(
+                        row.createdAt,
+                        row.status,
+                        isSelected ? "is-selected" : undefined,
+                      )}
+                      data-order-age={orderRowAgeDataAttr(row.createdAt, row.status)}
                       onClick={() => setSelectedOrder(isSelected ? null : row)}
                     >
                       <td>
-                        <span className="td-order-id">{row.orderId}</span>
+                        <OrderIdCell orderId={row.orderId} />
                       </td>
                       <td>
                         <span className="td-muted-id">{row.queryId}</span>

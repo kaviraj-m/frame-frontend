@@ -1,16 +1,24 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
 import { DataBoardSearchIcon } from "../../../components/ui/DataBoardSearchIcon";
+import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
 import { formatMoney } from "../../../lib/formatDisplay";
 import type { AdminPricingRow } from "../adminPricingTypes";
 import { AdminPricingEditorModal } from "./AdminPricingEditorModal";
 import { useAdminPricingList } from "./useAdminPricingList";
 
+function displayPrice(n: number | undefined | null): string {
+  if (n == null || Number.isNaN(n)) return "—";
+  return formatMoney(n);
+}
+
 export function AdminPricingPage() {
-  const { rows, filtered, search, setSearch, loadRows, msg, err, savePricing } =
+  const { rows, filtered, search, setSearch, loadRows, msg, err, savePricing, deletePricing } =
     useAdminPricingList();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRow, setEditingRow] = useState<AdminPricingRow | null>(null);
+  const { confirmAction, dialogProps } = useConfirmDialog();
 
   function openCreate() {
     setEditingRow(null);
@@ -27,6 +35,21 @@ export function AdminPricingPage() {
     setEditingRow(null);
   }
 
+  function requestDelete(row: AdminPricingRow, closeEditorAfter = false) {
+    confirmAction(
+      {
+        title: "Delete frame size",
+        message: `Remove "${row.frameSize}" from the catalogue? This cannot be undone. Sizes used on existing orders cannot be deleted.`,
+        confirmLabel: "Delete",
+        variant: "danger",
+      },
+      async () => {
+        const ok = await deletePricing(row.frameSize);
+        if (ok && closeEditorAfter) closeModal();
+      },
+    );
+  }
+
   return (
     <div className="data-board">
       <nav className="breadcrumb" style={{ marginBottom: 12 }}>
@@ -35,7 +58,7 @@ export function AdminPricingPage() {
         <span>Pricing</span>
       </nav>
       <p className="muted" style={{ margin: "0 0 12px" }}>
-        List price per size key (e.g. 12x18). Executives pick from active sizes when confirming an order.
+        Set online and cash full prices per frame size (e.g. 12x18). Executives choose payment mode first, then frame size uses the matching catalogue price.
       </p>
       <div className="data-board__toolbar">
         <div className="data-board__search-wrap">
@@ -67,19 +90,18 @@ export function AdminPricingPage() {
           <thead>
             <tr>
               <th>Frame size</th>
-              <th>Price</th>
+              <th>Online</th>
+              <th>Cash</th>
               <th>Active</th>
+              <th className="td-actions">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.map((r) => (
-              <tr
-                key={r.frameSize}
-                className="is-clickable-row"
-                onClick={() => openEdit(r)}
-              >
+              <tr key={r.frameSize}>
                 <td className="td-strong">{r.frameSize}</td>
-                <td>{formatMoney(r.price)}</td>
+                <td>{displayPrice(r.onlinePrice)}</td>
+                <td>{displayPrice(r.cashPrice)}</td>
                 <td>
                   {r.isActive ? (
                     <span className="pill pill--neutral">Yes</span>
@@ -87,11 +109,29 @@ export function AdminPricingPage() {
                     <span className="pill pill--neutral">No</span>
                   )}
                 </td>
+                <td className="td-actions">
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--sm"
+                      onClick={() => openEdit(r)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--sm"
+                      onClick={() => requestDelete(r)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr className="empty-row">
-                <td colSpan={3}>
+                <td colSpan={5}>
                   {rows.length === 0
                     ? "No frame sizes yet. Use “New frame size” to add one."
                     : "No rows match your search."}
@@ -113,7 +153,10 @@ export function AdminPricingPage() {
         editingRow={editingRow}
         onClose={closeModal}
         onSave={savePricing}
+        onDelete={editingRow ? () => requestDelete(editingRow, true) : undefined}
       />
+
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

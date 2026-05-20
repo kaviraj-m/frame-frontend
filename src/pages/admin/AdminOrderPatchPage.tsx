@@ -1,7 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { FormField } from "../../components/ui/FormField";
 import { api } from "../../lib/api";
 import { apiPaths } from "../../lib/apiPaths";
+import { validateRequired } from "../../lib/fieldValidation";
 import { PageHeader } from "../../components/ui/PageHeader";
 
 export function AdminOrderPatchPage() {
@@ -14,6 +16,7 @@ export function AdminOrderPatchPage() {
   const [paymentStatus, setPaymentStatus] = useState("FULLY_PAID");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (qpOrderId) setOrderId(qpOrderId);
@@ -23,8 +26,15 @@ export function AdminOrderPatchPage() {
     e.preventDefault();
     setErr("");
     setMsg("");
+    const orderIdErr = validateRequired(orderId, "Order ID");
+    if (orderIdErr) {
+      setFieldErrors({ orderId: orderIdErr });
+      setErr(orderIdErr);
+      return;
+    }
+    setFieldErrors({});
     try {
-      await api(apiPaths.adminOrder(orderId), {
+      await api(apiPaths.adminOrder(orderId.trim()), {
         method: "PUT",
         body: JSON.stringify({
           status: orderStatus,
@@ -54,11 +64,17 @@ export function AdminOrderPatchPage() {
       />
       {msg && <div className="flash flash--success" role="status">{msg}</div>}
       {err && <div className="flash flash--error" role="alert">{err}</div>}
-      <form className="card" onSubmit={updateOrder}>
-        <label>
-          Order ID
-          <input value={orderId} onChange={(e) => setOrderId(e.target.value)} required />
-        </label>
+      <form className="card" onSubmit={updateOrder} noValidate>
+        <FormField label="Order ID" required error={fieldErrors.orderId}>
+          <input
+            value={orderId}
+            onChange={(e) => {
+              setOrderId(e.target.value);
+              if (fieldErrors.orderId) setFieldErrors({});
+            }}
+            aria-invalid={!!fieldErrors.orderId}
+          />
+        </FormField>
         <div className="field-grid field-grid--2">
           <label>
             Status

@@ -31,7 +31,14 @@ describe("apiPaths", () => {
     expect(apiPaths.adminOrderPrintDone(id)).toBe("/api/admin/orders/O-ADM/print-done");
     expect(apiPaths.adminOrderBalancePayment(id)).toBe("/api/admin/orders/O-ADM/balance-payment");
     expect(apiPaths.adminOrderBalancePaid(id)).toBe("/api/admin/orders/O-ADM/balance-paid");
+    expect(apiPaths.adminOrderSaveTracking(id)).toBe("/api/admin/orders/O-ADM/tracking");
     expect(apiPaths.adminOrderDispatch(id)).toBe("/api/admin/orders/O-ADM/dispatch");
+    expect(apiPaths.adminOrderWhatsApp(id)).toBe("/api/admin/orders/O-ADM/whatsapp");
+    expect(apiPaths.adminOrderWhatsApp(id, "TRK-1")).toBe(
+      "/api/admin/orders/O-ADM/whatsapp?trackingNumber=TRK-1",
+    );
+    expect(apiPaths.adminWhatsAppPrintDraft).toBe("/api/admin/whatsapp-print-draft");
+    expect(apiPaths.adminOrderPrintWhatsApp(id)).toBe("/api/admin/orders/O-ADM/whatsapp-print");
     expect(apiPaths.adminOrderComplete(id)).toBe("/api/admin/orders/O-ADM/complete");
   });
 

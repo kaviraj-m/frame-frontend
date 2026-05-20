@@ -1,6 +1,9 @@
 import { Link } from "react-router-dom";
+import { OrderIdCell } from "../../components/orders/OrderIdCell";
 import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
 import { fulfillmentQueueAction } from "../../lib/adminFulfillment";
+import { OrderRowAgeLegend } from "../../components/orders/OrderRowAgeLegend";
+import { orderRowAgeDataAttr, orderRowClassName } from "../../lib/orderCreatedAge";
 import { formatMoney, formatShortDateTime } from "../../lib/formatDisplay";
 import type { AdminOrderRow } from "./adminOrderTypes";
 
@@ -20,7 +23,11 @@ export function AdminOrdersTable({
   const colSpan = showFulfillment ? 15 : 13;
 
   return (
-    <div className="table-wrap table-wrap--scroll">
+    <>
+      <div className="mb-3 px-0.5">
+        <OrderRowAgeLegend />
+      </div>
+      <div className="table-wrap table-wrap--scroll">
       <table className="data-table">
         <thead>
           <tr>
@@ -43,8 +50,14 @@ export function AdminOrdersTable({
         </thead>
         <tbody>
           {orders.map((o) => (
-            <tr key={o.orderId}>
-              <td className="td-mono td-order-id">{o.orderId}</td>
+            <tr
+              key={o.orderId}
+              className={orderRowClassName(o.createdAt, o.status)}
+              data-order-age={orderRowAgeDataAttr(o.createdAt, o.status)}
+            >
+              <td className="td-mono">
+                <OrderIdCell orderId={o.orderId} />
+              </td>
               <td className="td-mono td-muted-id">{o.queryId}</td>
               <td className="td-strong">{o.customerUsername?.trim() ? o.customerUsername : "—"}</td>
               <td>{o.customerPhoneNumber?.trim() ? o.customerPhoneNumber : "—"}</td>
@@ -105,5 +118,6 @@ export function AdminOrdersTable({
         </p>
       </div>
     </div>
+    </>
   );
 }

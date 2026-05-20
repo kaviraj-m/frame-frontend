@@ -19,6 +19,7 @@ export function ExecutiveQueriesPage() {
   const [queries, setQueries] = useState<Query[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [waBusyId, setWaBusyId] = useState<string | null>(null);
 
   async function loadQueries() {
     setError("");
@@ -33,6 +34,19 @@ export function ExecutiveQueriesPage() {
   useEffect(() => {
     loadQueries();
   }, []);
+
+  async function openWhatsApp(queryId: string) {
+    setError("");
+    setWaBusyId(queryId);
+    try {
+      const link = await api<{ redirectUrl: string }>(apiPaths.executiveQueryWhatsApp(queryId));
+      window.open(link.redirectUrl, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setWaBusyId(null);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return queries;
@@ -102,6 +116,15 @@ export function ExecutiveQueriesPage() {
                 <td className="date-cell">{formatShortDateTime(q.updatedAt)}</td>
                 <td className="td-actions">
                   <div className="inline-actions">
+                    <button
+                      type="button"
+                      className="small-btn small-btn--whatsapp"
+                      disabled={waBusyId === q.queryId}
+                      title={`Chat with ${q.customerUsername} on WhatsApp`}
+                      onClick={() => openWhatsApp(q.queryId)}
+                    >
+                      {waBusyId === q.queryId ? "Opening…" : "WhatsApp"}
+                    </button>
                     <Link className="small-btn" to={`/executive/queries/${encodeURIComponent(q.queryId)}/remarks`}>
                       Remarks
                     </Link>

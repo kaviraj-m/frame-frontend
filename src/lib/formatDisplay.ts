@@ -48,3 +48,13 @@ export function truncate(s: string, max: number): string {
   if (t.length <= max) return t;
   return `${t.slice(0, max - 1)}…`;
 }
+
+/** Opens WhatsApp chat (web or app). Uses wa.me; existing chats open in the same thread. */
+export function whatsappChatUrl(phone: string | undefined): string | null {
+  if (!phone?.trim()) return null;
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = digits.replace(/^0+/, "");
+  if (digits.length === 10 && /^[6-9]/.test(digits)) digits = `91${digits}`;
+  if (digits.length < 8 || digits.length > 15) return null;
+  return `https://wa.me/${digits}`;
+}

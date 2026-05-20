@@ -5,7 +5,8 @@ import type { AdminPricingRow } from "../adminPricingTypes";
 
 export type AdminPricingUpsertBody = {
   frameSize: string;
-  price: number;
+  onlinePrice: number;
+  cashPrice: number;
   isActive: boolean;
 };
 
@@ -55,6 +56,23 @@ export function useAdminPricingList() {
     [loadRows],
   );
 
+  const deletePricing = useCallback(
+    async (frameSize: string): Promise<boolean> => {
+      setErr("");
+      setMsg("");
+      try {
+        await api(apiPaths.adminPricingRow(frameSize), { method: "DELETE" });
+        setMsg("Frame size removed.");
+        await loadRows();
+        return true;
+      } catch (e) {
+        setErr((e as Error).message);
+        return false;
+      }
+    },
+    [loadRows],
+  );
+
   return {
     rows,
     filtered,
@@ -64,5 +82,6 @@ export function useAdminPricingList() {
     msg,
     err,
     savePricing,
+    deletePricing,
   };
-}
+};

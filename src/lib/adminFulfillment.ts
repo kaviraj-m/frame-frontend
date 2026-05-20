@@ -2,7 +2,7 @@ import type { OrderListRow } from "./orderListTypes";
 
 export type FulfillmentQueueFilter = "all" | "print_due" | "awaiting_payment" | "ready_to_ship" | "done";
 
-export type FulfillmentStepId = "print" | "balance" | "dispatch" | "complete";
+export type FulfillmentStepId = "print" | "balance" | "dispatch";
 
 export type StepState = "done" | "active" | "locked";
 
@@ -30,7 +30,7 @@ export function isFullyPaid(order: Pick<OrderListRow, "paymentStatus" | "balance
 export function fulfillmentQueueAction(order: Pick<OrderListRow, "status" | "printStage" | "balanceAmount" | "paymentStatus">): string {
   const status = (order.status ?? "").toUpperCase();
   if (status === "ORDER_COMPLETED" || status === "AMOUNT_RETURNED") return "View";
-  if (status === "DISPATCHED") return "Mark completed";
+  if (status === "DISPATCHED") return "View";
   if (isFullyPaid(order)) return "Dispatch";
   if (isPrintDone(order) && (order.balanceAmount ?? 0) > 0) return "Collect balance";
   if (status === "DESIGN_APPROVED" || status === "IN_PRINT") return "Mark print done";
@@ -68,8 +68,7 @@ export function fulfillmentStepStates(order: OrderListRow): Record<FulfillmentSt
   const status = (order.status ?? "").toUpperCase();
   const printDone = isPrintDone(order);
   const paid = isFullyPaid(order);
-  const dispatched = status === "DISPATCHED" || status === "ORDER_COMPLETED";
-  const completed = status === "ORDER_COMPLETED";
+  const shipped = status === "DISPATCHED" || status === "ORDER_COMPLETED";
 
   return {
     print:
@@ -79,8 +78,7 @@ export function fulfillmentStepStates(order: OrderListRow): Record<FulfillmentSt
           ? "done"
           : "locked",
     balance: !printDone ? "locked" : !paid ? "active" : "done",
-    dispatch: !paid ? "locked" : !dispatched ? "active" : "done",
-    complete: !dispatched ? "locked" : !completed ? "active" : "done",
+    dispatch: !paid ? "locked" : !shipped ? "active" : "done",
   };
 }
 
@@ -97,6 +95,32 @@ export function canDispatch(order: OrderListRow): boolean {
   return isFullyPaid(order) && (order.status ?? "").toUpperCase() !== "DISPATCHED" && (order.status ?? "").toUpperCase() !== "ORDER_COMPLETED";
 }
 
-export function canComplete(order: OrderListRow): boolean {
-  return (order.status ?? "").toUpperCase() === "DISPATCHED" && Boolean(order.trackingNumber?.trim());
+/** Print-step WhatsApp — during print phase before dispatch/completion. */
+export function canWhatsAppPrint(order: OrderListRow): boolean {
+  const status = (order.status ?? "").toUpperCase();
+  if (status === "AMOUNT_RETURNED" || status === "DISPATCHED" || status === "ORDER_COMPLETED") {
+    return false;
+  }
+  if (status === "DESIGN_APPROVED" || status === "IN_PRINT") {
+    return true;
+  }
+  return isPrintDone(order);
+}
+
+export function hasSavedTracking(order: Pick<OrderListRow, "trackingNumber">): boolean {
+  return Boolean((order.trackingNumber ?? "").trim());
+}
+
+/** Save tracking — fully paid, not yet dispatched/completed. */
+export function canSaveTracking(order: OrderListRow): boolean {
+  return canDispatch(order);
+}
+
+/** Dispatch WhatsApp — after tracking is saved, before dispatch/completion. */
+export function canWhatsAppDispatch(order: OrderListRow): boolean {
+  const status = (order.status ?? "").toUpperCase();
+  if (status === "AMOUNT_RETURNED" || status === "DISPATCHED" || status === "ORDER_COMPLETED") {
+    return false;
+  }
+  return hasSavedTracking(order);
 }

@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* App styles — split by concern; order matters. */
 @import "./01-tokens.css";
 @import "./02-base.css";

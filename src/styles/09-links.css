@@ -1,4 +1,5 @@
-a.small-btn {
+a.small-btn,
+button.small-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -11,11 +12,32 @@ a.small-btn {
   font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-a.small-btn:hover {
+button.small-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+a.small-btn:hover,
+button.small-btn:hover:not(:disabled) {
   border-color: rgba(212, 162, 76, 0.35);
   background: var(--accent-soft);
+}
+
+a.small-btn--whatsapp,
+button.small-btn--whatsapp {
+  border-color: rgba(37, 211, 102, 0.45);
+  color: #b8f5d0;
+}
+
+a.small-btn--whatsapp:hover,
+button.small-btn--whatsapp:hover:not(:disabled) {
+  border-color: rgba(37, 211, 102, 0.75);
+  background: rgba(37, 211, 102, 0.12);
+  color: #e8fff0;
 }
 
 a.button-link {

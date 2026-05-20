@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   canDispatch,
   canMarkPrintDone,
+  canWhatsAppDispatch,
+  canWhatsAppPrint,
+  hasSavedTracking,
   fulfillmentQueueAction,
   fulfillmentStepStates,
   isFullyPaid,
@@ -23,6 +26,7 @@ describe("adminFulfillment", () => {
   it("suggests print action for design approved", () => {
     expect(fulfillmentQueueAction(base)).toBe("Mark print done");
     expect(canMarkPrintDone(base)).toBe(true);
+    expect(canWhatsAppPrint(base)).toBe(true);
   });
 
   it("tracks step states through workflow", () => {
@@ -32,6 +36,18 @@ describe("adminFulfillment", () => {
     expect(isFullyPaid(paid)).toBe(true);
     expect(canDispatch(paid)).toBe(true);
     expect(fulfillmentStepStates(paid).dispatch).toBe("active");
+    expect(canWhatsAppDispatch(paid)).toBe(false);
+    const trackingSaved = { ...paid, trackingNumber: "TRK-1" };
+    expect(hasSavedTracking(trackingSaved)).toBe(true);
+    expect(canWhatsAppDispatch(trackingSaved)).toBe(true);
+    const completed = {
+      ...paid,
+      status: "ORDER_COMPLETED",
+      trackingNumber: "TRK-1",
+    };
+    expect(canWhatsAppDispatch(completed)).toBe(false);
+    expect(canWhatsAppPrint(completed)).toBe(false);
+    expect(canWhatsAppPrint(printed)).toBe(true);
   });
 
   it("filters production queue buckets", () => {

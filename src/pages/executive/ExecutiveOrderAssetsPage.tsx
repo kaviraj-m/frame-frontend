@@ -1,5 +1,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { FilePickField } from "../../components/ui/FilePickField";
+import { useConfirmDialog } from "../../hooks/useConfirmDialog";
 import { api, apiBinaryGet, apiUpload } from "../../lib/api";
 import { apiPaths } from "../../lib/apiPaths";
 import { formatShortDateTime } from "../../lib/formatDisplay";
@@ -37,7 +40,6 @@ function assetTypeLabel(t: string): string {
 export function ExecutiveOrderAssetsPage() {
   const { orderId: orderIdParam } = useParams();
   const orderId = orderIdParam ? decodeURIComponent(orderIdParam) : "";
-  const [assetKey, setAssetKey] = useState("");
   const [sourceFiles, setSourceFiles] = useState<File[]>([]);
   const [assets, setAssets] = useState<OrderAssetRow[]>([]);
   const [status, setStatus] = useState("");
@@ -47,8 +49,8 @@ export function ExecutiveOrderAssetsPage() {
   const imagePreviewUrlRef = useRef<string | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
+  const { confirmAction, dialogProps } = useConfirmDialog();
 
   const closeImagePreview = useCallback(() => {
     if (imagePreviewUrlRef.current) {
@@ -131,49 +133,34 @@ export function ExecutiveOrderAssetsPage() {
     }
   }
 
-  async function deleteAsset(assetId: string, assetType: string) {
+  function deleteAsset(assetId: string, assetType: string) {
     if (!canExecutiveDeleteAsset(assetType)) return;
-    if (!window.confirm("Delete this file from the order and from storage? This cannot be undone.")) {
-      return;
-    }
-    setError("");
-    setStatus("");
-    setDeletingAssetId(assetId);
-    try {
-      await api(apiPaths.executiveOrderAssetDelete(orderId, assetId), { method: "DELETE" });
-      setStatus("File removed.");
-      await loadAssets();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setDeletingAssetId(null);
-    }
-  }
-
-  async function uploadSourceAsset(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-    setStatus("");
-    try {
-      await api(apiPaths.executiveOrderAsset(orderId, "source"), {
-        method: "POST",
-        body: JSON.stringify({ r2Key: assetKey }),
-      });
-      setStatus("Storage key linked.");
-      setAssetKey("");
-      await loadAssets();
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  function removeSourceFileAt(index: number) {
-    setSourceFiles((prev) => prev.filter((_, i) => i !== index));
+    confirmAction(
+      {
+        title: "Delete file",
+        message: "Delete this file from the order and from storage? This cannot be undone.",
+        confirmLabel: "Delete file",
+        variant: "danger",
+      },
+      async () => {
+        setError("");
+        setStatus("");
+        setDeletingAssetId(assetId);
+        try {
+          await api(apiPaths.executiveOrderAssetDelete(orderId, assetId), { method: "DELETE" });
+          setStatus("File removed.");
+          await loadAssets();
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setDeletingAssetId(null);
+        }
+      },
+    );
   }
 
   function clearSourceFileSelection() {
     setSourceFiles([]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function uploadSourceFile(e: FormEvent) {
@@ -243,7 +230,7 @@ export function ExecutiveOrderAssetsPage() {
       <PageHeader
         kicker="Print files"
         title="Source photos"
-        description="Everything the lab needs before design starts. Files already on this order (including the customer frame image from confirm) appear below. Add more from disk or register a storage key."
+        description="Everything the lab needs before design starts. Files already on this order (including the customer frame image from confirm) appear below. Add more from your computer."
         actions={
           <button type="button" className="btn btn--secondary btn--sm" onClick={() => loadAssets()}>
             Refresh list
@@ -322,45 +309,16 @@ export function ExecutiveOrderAssetsPage() {
 
       <div className="card">
         <h3>Upload from computer</h3>
-        <p className="muted">
-          JPEG / PNG / WebP, up to about 32MB each. Select <strong>multiple images</strong> at once (Ctrl/Cmd+click or Shift+click in the file dialog). Same flow uses cloud storage in production.
-        </p>
         <form className="stack" onSubmit={uploadSourceFile} aria-busy={uploadBusy}>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,.jpg,.jpeg,.png,.webp"
+          <FilePickField
+            label="Source photos"
+            hint="JPEG / PNG / WebP, up to about 32MB each. Pick several at once, or use Choose images again to add more — previous picks stay in the list."
             multiple
+            chooseLabel="Choose images"
+            files={sourceFiles}
+            onFilesChange={setSourceFiles}
             disabled={uploadBusy}
-            onChange={(e) => setSourceFiles(Array.from(e.target.files ?? []))}
           />
-          {sourceFiles.length > 0 && (
-            <>
-              <p className="muted">
-                {sourceFiles.length} image{sourceFiles.length === 1 ? "" : "s"} selected
-              </p>
-              <ul className="file-pick-list">
-                {sourceFiles.map((f, i) => (
-                  <li key={`${f.name}-${f.size}-${i}`}>
-                    <span className="small td-mono">{f.name}</span>
-                    <button
-                      type="button"
-                      className="btn btn--ghost btn--sm"
-                      disabled={uploadBusy}
-                      onClick={() => removeSourceFileAt(i)}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              {!uploadBusy && (
-                <button type="button" className="btn btn--ghost btn--sm" onClick={clearSourceFileSelection}>
-                  Clear all
-                </button>
-              )}
-            </>
-          )}
           <button type="submit" className="btn btn--primary btn--block" disabled={uploadBusy || sourceFiles.length === 0}>
             {uploadBusy && uploadProgress ? (
               <>
@@ -370,16 +328,6 @@ export function ExecutiveOrderAssetsPage() {
             ) : (
               `Upload${sourceFiles.length > 1 ? ` ${sourceFiles.length} images` : sourceFiles.length === 1 ? " image" : ""}`
             )}
-          </button>
-        </form>
-      </div>
-      <div className="card">
-        <h3>Already in storage?</h3>
-        <p className="muted">Paste the object key if the file was uploaded elsewhere.</p>
-        <form className="stack" onSubmit={uploadSourceAsset}>
-          <input placeholder="Key or path" value={assetKey} onChange={(e) => setAssetKey(e.target.value)} />
-          <button type="submit" className="btn btn--secondary">
-            Register key
           </button>
         </form>
       </div>
@@ -413,6 +361,7 @@ export function ExecutiveOrderAssetsPage() {
           </div>
         </div>
       )}
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

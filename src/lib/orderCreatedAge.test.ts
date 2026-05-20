@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import {
+  isTerminalOrderStatus,
+  orderAgeDayOffset,
+  orderRowAgeClass,
+  orderRowAgeTier,
+  orderRowAgeDataAttr,
+  orderRowClassName,
+} from "./orderCreatedAge";
+
+/** Fixed "now" = 2026-05-20 15:00 UTC (same calendar day in IST as 20 May) */
+const NOW = new Date("2026-05-20T15:00:00.000Z");
+
+describe("orderCreatedAge", () => {
+  it("marks terminal statuses as normal (no age tier)", () => {
+    expect(isTerminalOrderStatus("ORDER_COMPLETED")).toBe(true);
+    expect(orderRowAgeTier("2026-05-20T08:00:00.000Z", "ORDER_COMPLETED", NOW)).toBe("");
+    expect(orderRowAgeTier("2026-05-01T08:00:00.000Z", "AMOUNT_RETURNED", NOW)).toBe("");
+    expect(orderRowAgeClass("2026-05-20T08:00:00.000Z", "ORDER_COMPLETED", NOW)).toBe("");
+  });
+
+  it("computes calendar day offset in India", () => {
+    expect(orderAgeDayOffset("2026-05-20T08:00:00.000Z", NOW)).toBe(0);
+    expect(orderAgeDayOffset("2026-05-19T10:00:00.000Z", NOW)).toBe(1);
+    expect(orderAgeDayOffset("2026-05-18T10:00:00.000Z", NOW)).toBe(2);
+    expect(orderAgeDayOffset("2026-05-15T10:00:00.000Z", NOW)).toBe(5);
+  });
+
+  it("maps tiers to Tailwind full-row classes", () => {
+    const today = orderRowAgeClass("2026-05-20T08:00:00.000Z", "IN_DESIGN", NOW);
+    expect(orderRowAgeTier("2026-05-20T08:00:00.000Z", "IN_DESIGN", NOW)).toBe("today");
+    expect(today).toContain("bg-emerald-950");
+    expect(today).toContain("text-emerald-100");
+    expect(today).toContain("text-inherit");
+
+    const yesterday = orderRowAgeClass("2026-05-19T10:00:00.000Z", "IN_PRINT", NOW);
+    expect(orderRowAgeTier("2026-05-19T10:00:00.000Z", "IN_PRINT", NOW)).toBe("day2");
+    expect(yesterday).toContain("bg-yellow-950");
+    expect(yesterday).toContain("text-yellow-100");
+
+    const twoDays = orderRowAgeClass("2026-05-18T10:00:00.000Z", "ORDER_CONFIRMED", NOW);
+    expect(orderRowAgeTier("2026-05-18T10:00:00.000Z", "ORDER_CONFIRMED", NOW)).toBe("day3");
+    expect(twoDays).toContain("bg-amber-950");
+    expect(twoDays).toContain("text-amber-100");
+
+    const old = orderRowAgeClass("2026-05-15T10:00:00.000Z", "IN_DESIGN", NOW);
+    expect(orderRowAgeTier("2026-05-15T10:00:00.000Z", "IN_DESIGN", NOW)).toBe("old");
+    expect(old).toContain("bg-rose-950");
+    expect(old).toContain("text-rose-100");
+  });
+
+  it("returns normal for missing or invalid createdAt", () => {
+    expect(orderRowAgeTier(undefined, "IN_DESIGN", NOW)).toBe("");
+    expect(orderRowAgeTier("not-a-date", "IN_DESIGN", NOW)).toBe("");
+  });
+
+  it("merges extra row classes and selection ring on age rows", () => {
+    const row = orderRowClassName("2026-05-20T08:00:00.000Z", "IN_DESIGN", "is-selected", NOW);
+    expect(row).toContain("bg-emerald");
+    expect(row).toContain("is-selected");
+    expect(row).toContain("shadow-[inset");
+  });
+
+  it("exposes data-order-age tier for table rows", () => {
+    expect(orderRowAgeDataAttr("2026-05-20T08:00:00.000Z", "IN_DESIGN", NOW)).toBe("today");
+    expect(orderRowAgeDataAttr("2026-05-19T10:00:00.000Z", "IN_PRINT", NOW)).toBe("day2");
+    expect(orderRowAgeDataAttr("2026-05-20T08:00:00.000Z", "ORDER_COMPLETED", NOW)).toBeUndefined();
+  });
+});

@@ -27,7 +27,7 @@ export function ExecutiveOrderNewPage() {
       <PageHeader
         kicker="From query"
         title="Confirm order"
-        description="Locks frame size and payment. Admin must have priced that frame size; advance cannot exceed the catalogue total."
+        description="Select payment mode (cash or online), then frame size — full price comes from admin pricing for that mode. Advance cannot exceed that total."
       />
       {o.status && <div className="flash flash--success" role="status">{o.status}</div>}
       {o.error && <div className="flash flash--error" role="alert">{o.error}</div>}
@@ -46,10 +46,12 @@ export function ExecutiveOrderNewPage() {
         paymentMode={o.paymentMode}
         setPaymentMode={o.setPaymentMode}
         framingImages={o.framingImages}
-        addFramingImages={o.addFramingImages}
-        removeFramingImage={o.removeFramingImage}
+        setFramingImages={o.setFramingImages}
         paymentProofFile={o.paymentProofFile}
         setPaymentProofFile={o.setPaymentProofFile}
+        submitting={o.submitting}
+        fieldErrors={o.fieldErrors}
+        clearFieldError={o.clearFieldError}
         onSubmit={o.createOrder}
       />
     </div>

@@ -6,6 +6,7 @@ import {
   type OrderAssetRow,
 } from "../../lib/orderAssetLabels";
 import { formatShortDateTime } from "../../lib/formatDisplay";
+import { ExternalLinkIcon } from "../ui/ExternalLinkIcon";
 
 function isImageKey(key: string): boolean {
   return /\.(jpe?g|png|gif|webp|bmp)$/i.test(key);
@@ -22,6 +23,11 @@ type OrderAssetsPanelProps = {
   onDownload: (assetId: string, r2Key: string) => void;
   onDownloadAll?: () => void;
   downloadAllBusy?: boolean;
+  /** Shown in Actions (first row only) — opens WhatsApp with draft message in a new tab. */
+  onWhatsApp?: () => void;
+  whatsappBusy?: boolean;
+  whatsappDisabled?: boolean;
+  whatsappTitle?: string;
   emptyMessage?: string;
 };
 
@@ -96,6 +102,10 @@ export function OrderAssetsPanel({
   onDownload,
   onDownloadAll,
   downloadAllBusy,
+  onWhatsApp,
+  whatsappBusy = false,
+  whatsappDisabled = false,
+  whatsappTitle = "Open WhatsApp in a new tab",
   emptyMessage = "No files yet.",
 }: OrderAssetsPanelProps) {
   const rows = filter ? assets.filter(filter) : assets;
@@ -151,13 +161,34 @@ export function OrderAssetsPanel({
             </tr>
           </thead>
           <tbody>
-            {rows.map((a) => (
+            {rows.map((a, rowIndex) => (
               <tr key={a.id}>
                 {showTypeColumn ? <td>{assetTypeLabel(a.assetType)}</td> : null}
                 <td className="td-mono">{fileLabelFromKey(a.r2Key)}</td>
                 <td className="date-cell">{a.createdAt ? formatShortDateTime(a.createdAt) : "—"}</td>
                 <td className="td-actions">
-                  <div className="inline-actions">
+                  <div className="inline-actions td-actions-stack">
+                    {onWhatsApp && rowIndex === 0 ? (
+                      <button
+                        type="button"
+                        className="btn btn--sm btn--whatsapp-action"
+                        disabled={whatsappBusy || whatsappDisabled}
+                        title={whatsappTitle}
+                        onClick={onWhatsApp}
+                      >
+                        {whatsappBusy ? (
+                          <>
+                            <span className="spinner spinner--sm" aria-hidden />
+                            Opening…
+                          </>
+                        ) : (
+                          <>
+                            <ExternalLinkIcon />
+                            WhatsApp
+                          </>
+                        )}
+                      </button>
+                    ) : null}
                     <button type="button" className="btn btn--ghost btn--sm" onClick={() => onView(a.id, a.r2Key)}>
                       View
                     </button>

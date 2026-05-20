@@ -117,3 +117,13 @@
 .remark-timeline__body {
   white-space: pre-wrap;
 }
+
+.remark-timeline__image {
+  display: block;
+  margin-top: 0.5rem;
+  max-width: min(100%, 320px);
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}

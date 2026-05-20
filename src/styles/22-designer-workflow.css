@@ -8,9 +8,9 @@
 }
 
 .designer-filter-chip {
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  background: var(--surface-raised, #fff);
-  color: var(--text-muted, #64748b);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   border-radius: 999px;
   padding: 6px 14px;
   font-size: 0.8125rem;
@@ -19,14 +19,14 @@
 }
 
 .designer-filter-chip:hover {
-  border-color: var(--accent, #2563eb);
-  color: var(--text, #0f172a);
+  border-color: rgba(212, 162, 76, 0.45);
+  color: var(--text);
 }
 
 .designer-filter-chip--active {
-  background: var(--accent, #2563eb);
-  border-color: var(--accent, #2563eb);
-  color: #fff;
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .designer-workflow-stepper {
@@ -43,48 +43,67 @@
 }
 
 .designer-workflow-step {
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
-  background: var(--surface-raised, #fff);
+  background: var(--surface-2);
+  color: var(--text-secondary);
   font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .designer-workflow-step__num {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 50%;
-  background: var(--border-subtle, #e2e8f0);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
   font-size: 0.75rem;
-  font-weight: 600;
-  margin-right: 6px;
+  font-weight: 700;
+  margin-right: 8px;
 }
 
 .designer-workflow-step--active {
-  border-color: var(--accent, #2563eb);
-  box-shadow: 0 0 0 1px var(--accent, #2563eb);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
 .designer-workflow-step--active .designer-workflow-step__num {
-  background: var(--accent, #2563eb);
-  color: #fff;
+  background: var(--accent);
+  border-color: transparent;
+  color: #1a1208;
 }
 
 .designer-workflow-step--done {
-  opacity: 0.85;
-  border-color: var(--success-border, #86efac);
+  border-color: rgba(92, 184, 138, 0.45);
+  background: var(--ok-muted);
+  color: var(--text);
 }
 
 .designer-workflow-step--done .designer-workflow-step__num {
-  background: var(--success, #16a34a);
-  color: #fff;
+  background: var(--ok);
+  border-color: transparent;
+  color: #0a1208;
 }
 
 .designer-workflow-step--locked {
-  opacity: 0.55;
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.designer-workflow-step--locked .designer-workflow-step__num {
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
 }
 
 .designer-revision-banner {
@@ -104,10 +123,10 @@
 }
 
 .designer-asset-thumb {
-  border: 1px solid var(--border-subtle, #e2e8f0);
-  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
   overflow: hidden;
-  background: var(--surface-sunken, #f8fafc);
+  background: var(--surface);
   cursor: pointer;
   padding: 0;
   text-align: left;
@@ -124,8 +143,41 @@
   display: block;
   padding: 6px 8px;
   font-size: 0.75rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.td-actions-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 7.5rem;
+}
+
+.btn--whatsapp-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(37, 211, 102, 0.55);
+  background: rgba(37, 211, 102, 0.14);
+  color: #d4f5e0;
+  font-weight: 600;
+}
+
+.btn--whatsapp-action:hover:not(:disabled) {
+  border-color: rgba(37, 211, 102, 0.85);
+  background: rgba(37, 211, 102, 0.22);
+  color: #f0fff5;
+}
+
+.btn--whatsapp-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-external-link {
+  flex-shrink: 0;
 }

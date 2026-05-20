@@ -5,11 +5,7 @@ import type { ShellNavSection } from "../../components/layout/DashboardShell";
 const navSections: ShellNavSection[] = [
   {
     heading: "Team",
-    items: [
-      { to: "/admin/users", label: "Directory", end: true },
-      { to: "/admin/users/new", label: "Add user", end: true },
-      { to: "/admin/users/status", label: "Access control", end: true },
-    ],
+    items: [{ to: "/admin/users", label: "User management", end: true }],
   },
   {
     heading: "Configuration",
@@ -17,10 +13,7 @@ const navSections: ShellNavSection[] = [
   },
   {
     heading: "Customer comms",
-    items: [
-      { to: "/admin/templates", label: "Templates", end: true },
-      { to: "/admin/notify", label: "Manual notify", end: true },
-    ],
+    items: [{ to: "/admin/whatsapp-draft", label: "WhatsApp draft", end: true }],
   },
   {
     heading: "Operations",
@@ -41,7 +34,9 @@ export function AdminLayout() {
       navSections={navSections}
       hideTopbar
     >
-      <Outlet />
+      <div className="admin-app">
+        <Outlet />
+      </div>
     </DashboardShell>
   );
 }
