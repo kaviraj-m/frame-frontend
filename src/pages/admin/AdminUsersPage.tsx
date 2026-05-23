@@ -1,12 +1,24 @@
 import { useState } from "react";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
-import { PageHeader } from "../../components/ui/PageHeader";
-import { useConfirmDialog } from "../../hooks/useConfirmDialog";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { AdminUserEditorModal } from "./users/AdminUserEditorModal";
 import { AdminUserPasswordModal } from "./users/AdminUserPasswordModal";
 import type { AdminUserRow } from "./users/adminUserTypes";
 import { useAdminUsersList } from "./users/useAdminUsersList";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
 
 export function AdminUsersPage() {
   const {
@@ -76,117 +88,117 @@ export function AdminUsersPage() {
   }
 
   return (
-    <div className="data-board">
+    <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
       <PageHeader
         kicker="Team"
         title="User management"
         description="Create accounts, manage access, reset passwords, and remove users. Sign-in accepts email or username."
       />
-      <div className="data-board__toolbar">
-        <div className="data-board__search-wrap">
-          <span className="data-board__search-icon">
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+          <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
-          <input
-            className="data-board__search"
+          <Input
+            className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search username, email, role, ID…"
             aria-label="Search users"
           />
         </div>
-        <div className="data-board__toolbar-actions">
-          <button type="button" className="btn btn--primary btn--sm" onClick={openCreate}>
+        <div className="ml-auto flex flex-wrap gap-2 items-center">
+          <Button type="button" size="sm" onClick={openCreate}>
             Add user
-          </button>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={loadUsers}>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={loadUsers}>
             Refresh
-          </button>
+          </Button>
         </div>
       </div>
       {msg && (
-        <div className="flash flash--success" role="status">
-          {msg}
-        </div>
+        <Alert variant="success" role="status">
+          <AlertDescription>{msg}</AlertDescription>
+        </Alert>
       )}
       {err && (
-        <div className="flash flash--error" role="alert">
-          {err}
-        </div>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{err}</AlertDescription>
+        </Alert>
       )}
-      <div className="table-wrap table-wrap--scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="overflow-auto w-full">
+        <Table>
+          <TableHeaderBand>
+            <TableRow>
+              <TableHead>Username</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeaderBand>
+          <TableBody>
             {filtered.map((u) => (
-              <tr
+              <TableRow
                 key={u.id}
-                className="is-clickable-row"
+                className="cursor-pointer"
                 onClick={() => openEdit(u)}
               >
-                <td className="td-strong">{u.username}</td>
-                <td className="td-muted">{u.email?.trim() ? u.email : "—"}</td>
-                <td>
-                  <span className="pill pill--neutral">{u.role}</span>
-                </td>
-                <td>
-                  <span className={u.isActive ? "pill" : "pill pill--neutral"}>
+                <TableCell className="font-semibold">{u.username}</TableCell>
+                <TableCell className="text-muted-foreground">{u.email?.trim() ? u.email : "—"}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{u.role}</Badge>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={u.isActive ? "success" : "secondary"}>
                     {u.isActive ? "Active" : "Inactive"}
-                  </span>
-                </td>
-                <td>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
                       type="button"
-                      className="btn btn--secondary btn--sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
                         openEdit(u);
                       }}
                     >
                       Edit
-                    </button>
+                    </Button>
                     {canDeleteUser(u) ? (
-                      <button
+                      <Button
                         type="button"
-                        className="btn btn--secondary btn--sm"
+                        variant="secondary"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           requestDelete(u);
                         }}
                       >
                         Delete
-                      </button>
+                      </Button>
                     ) : null}
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr className="empty-row">
-                <td colSpan={5}>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   {users.length === 0
                     ? "No users yet. Use “Add user” to create one."
                     : "No rows match your search."}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-        <div className="table-footer">
-          <p className="total-info">
-            Showing <strong>{filtered.length}</strong> user{filtered.length === 1 ? "" : "s"}
-            {search.trim() ? ` (of ${users.length})` : ""}
-          </p>
-        </div>
+          </TableBody>
+        </Table>
+        <p className="text-sm text-muted-foreground mt-3">
+          Showing <strong>{filtered.length}</strong> user{filtered.length === 1 ? "" : "s"}
+          {search.trim() ? ` (of ${users.length})` : ""}
+        </p>
       </div>
 
       <AdminUserEditorModal

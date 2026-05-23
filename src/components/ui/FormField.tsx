@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 type Props = {
   label: ReactNode;
@@ -7,22 +9,23 @@ type Props = {
   hint?: ReactNode;
   children: ReactNode;
   className?: string;
+  htmlFor?: string;
 };
 
-export function FormField({ label, required, error, hint, children, className }: Props) {
+export function FormField({ label, required, error, hint, children, className, htmlFor }: Props) {
   return (
-    <label className={className ? `form-field ${className}` : "form-field"}>
-      <span className="form-field__label">
+    <div className={cn("space-y-2", className)}>
+      <Label htmlFor={htmlFor} className="flex gap-0.5">
         {label}
-        {required ? <span className="form-field__required" aria-hidden> *</span> : null}
-      </span>
+        {required ? <span className="text-destructive" aria-hidden>*</span> : null}
+      </Label>
       {children}
       {error ? (
-        <span className="field-error" role="alert">
+        <p className="text-xs text-destructive" role="alert">
           {error}
-        </span>
+        </p>
       ) : null}
-      {hint && !error ? <span className="field-hint muted small">{hint}</span> : null}
-    </label>
+      {hint && !error ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+    </div>
   );
 }

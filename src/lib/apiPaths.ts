@@ -1,5 +1,5 @@
 /**
- * Canonical REST paths for the kaspx backend. Use these from pages so URLs stay
+ * Canonical REST paths for the Memorix backend. Use these from pages so URLs stay
  * aligned with `backend/internal/app/server.go`.
  */
 
@@ -59,9 +59,35 @@ export const apiPaths = {
   adminWhatsAppDesignSharedDraft: "/api/admin/whatsapp-design-shared-draft",
   adminWhatsAppDispatchDraft: "/api/admin/whatsapp-dispatch-draft",
   adminWhatsAppPrintDraft: "/api/admin/whatsapp-print-draft",
-  executiveQueryWhatsApp: (queryId: string) =>
-    `/api/executive/queries/${enc(queryId)}/whatsapp`,
+  executiveOrderWhatsApp: (orderId: string) =>
+    `/api/executive/orders/${enc(orderId)}/whatsapp`,
+  executiveFeatures: "/api/executive/features",
+  /** All orders for production & dispatch queue (executive, when feature enabled). */
+  executiveProductionOrders: "/api/executive/production-orders",
+  adminExecutiveFeatures: "/api/admin/settings/executive-features",
+  executiveFulfillmentOrder: (orderId: string) => `/api/executive/orders/${enc(orderId)}`,
+  executiveOrderPrintImage: (orderId: string, disposition: "inline" | "attachment") =>
+    `/api/executive/orders/${enc(orderId)}/print-image?disposition=${disposition}`,
+  executiveOrderPrintImageUpload: (orderId: string) =>
+    `/api/executive/orders/${enc(orderId)}/print-image`,
+  executiveOrderPrintDone: (orderId: string) => `/api/executive/orders/${enc(orderId)}/print-done`,
+  executiveOrderBalancePayment: (orderId: string) =>
+    `/api/executive/orders/${enc(orderId)}/balance-payment`,
+  executiveOrderBalancePaid: (orderId: string) => `/api/executive/orders/${enc(orderId)}/balance-paid`,
+  executiveOrderSaveTracking: (orderId: string) => `/api/executive/orders/${enc(orderId)}/tracking`,
+  executiveOrderDispatch: (orderId: string) => `/api/executive/orders/${enc(orderId)}/dispatch`,
+  executiveOrderComplete: (orderId: string) => `/api/executive/orders/${enc(orderId)}/complete`,
+  executiveOrderWhatsAppDispatch: (orderId: string, trackingNumber?: string) => {
+    const base = `/api/executive/orders/${enc(orderId)}/whatsapp-dispatch`;
+    const t = trackingNumber?.trim();
+    return t ? `${base}?trackingNumber=${encodeURIComponent(t)}` : base;
+  },
+  executiveOrderPrintWhatsApp: (orderId: string) =>
+    `/api/executive/orders/${enc(orderId)}/whatsapp-print`,
   adminOrder: (orderId: string) => `/api/admin/orders/${enc(orderId)}`,
+  adminOrderPrintImage: (orderId: string, disposition: "inline" | "attachment") =>
+    `/api/admin/orders/${enc(orderId)}/print-image?disposition=${disposition}`,
+  adminOrderPrintImageUpload: (orderId: string) => `/api/admin/orders/${enc(orderId)}/print-image`,
   adminOrderPrintDone: (orderId: string) => `/api/admin/orders/${enc(orderId)}/print-done`,
   adminOrderBalancePayment: (orderId: string) => `/api/admin/orders/${enc(orderId)}/balance-payment`,
   adminOrderBalancePaid: (orderId: string) => `/api/admin/orders/${enc(orderId)}/balance-paid`,
@@ -76,4 +102,10 @@ export const apiPaths = {
     `/api/admin/orders/${enc(orderId)}/whatsapp-print`,
   adminOrderComplete: (orderId: string) => `/api/admin/orders/${enc(orderId)}/complete`,
   adminAttendanceReport: "/api/admin/attendance/report",
+  adminAttendanceToday: "/api/admin/attendance/today",
+  adminAttendanceDaily: (date: string) =>
+    `/api/admin/attendance/daily?date=${encodeURIComponent(date)}`,
+  adminAttendanceUserDay: (userId: string, date: string) =>
+    `/api/admin/attendance/users/${encodeURIComponent(userId)}/day?date=${encodeURIComponent(date)}`,
+  adminAuditLogs: "/api/admin/audit-logs",
 } as const;

@@ -20,6 +20,10 @@ export function isPrintDone(order: Pick<OrderListRow, "printStage">): boolean {
   return (order.printStage ?? "").toUpperCase() === "DONE";
 }
 
+export function hasPrintImage(order: Pick<OrderListRow, "printedFrameImage">): boolean {
+  return Boolean((order.printedFrameImage ?? "").trim());
+}
+
 export function isFullyPaid(order: Pick<OrderListRow, "paymentStatus" | "balanceAmount">): boolean {
   return (
     (order.paymentStatus ?? "").toUpperCase() === "FULLY_PAID" ||
@@ -82,9 +86,13 @@ export function fulfillmentStepStates(order: OrderListRow): Record<FulfillmentSt
   };
 }
 
-export function canMarkPrintDone(order: OrderListRow): boolean {
+export function canUploadPrintImage(order: OrderListRow): boolean {
   const s = (order.status ?? "").toUpperCase();
   return (s === "DESIGN_APPROVED" || s === "IN_PRINT") && !isPrintDone(order);
+}
+
+export function canMarkPrintDone(order: OrderListRow): boolean {
+  return canUploadPrintImage(order) && hasPrintImage(order);
 }
 
 export function canCollectBalance(order: OrderListRow): boolean {

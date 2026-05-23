@@ -9,6 +9,12 @@ describe("apiPaths", () => {
     expect(apiPaths.executiveQueryRemarks("qry#1")).toBe("/api/executive/queries/qry%231/remarks");
   });
 
+  it("uses executive order WhatsApp URL", () => {
+    expect(apiPaths.executiveOrderWhatsApp("ORD-2026/x")).toBe(
+      "/api/executive/orders/ORD-2026%2Fx/whatsapp",
+    );
+  });
+
   it("uses one URL pattern for executive asset link and multipart upload", () => {
     const id = "ORD-1";
     expect(apiPaths.executiveOrderAssets(id)).toBe("/api/executive/orders/ORD-1/assets");
@@ -25,9 +31,28 @@ describe("apiPaths", () => {
     );
   });
 
+  it("uses executive fulfillment and feature URLs", () => {
+    const id = "O-EX";
+    expect(apiPaths.executiveFeatures).toBe("/api/executive/features");
+    expect(apiPaths.executiveProductionOrders).toBe("/api/executive/production-orders");
+    expect(apiPaths.adminExecutiveFeatures).toBe("/api/admin/settings/executive-features");
+    expect(apiPaths.executiveFulfillmentOrder(id)).toBe("/api/executive/orders/O-EX");
+    expect(apiPaths.executiveOrderPrintImageUpload(id)).toBe("/api/executive/orders/O-EX/print-image");
+    expect(apiPaths.executiveOrderPrintDone(id)).toBe("/api/executive/orders/O-EX/print-done");
+    expect(apiPaths.executiveOrderDispatch(id)).toBe("/api/executive/orders/O-EX/dispatch");
+    expect(apiPaths.executiveOrderWhatsAppDispatch(id, "TRK")).toBe(
+      "/api/executive/orders/O-EX/whatsapp-dispatch?trackingNumber=TRK",
+    );
+    expect(apiPaths.executiveOrderPrintWhatsApp(id)).toBe("/api/executive/orders/O-EX/whatsapp-print");
+  });
+
   it("uses admin fulfillment URLs", () => {
     const id = "O-ADM";
     expect(apiPaths.adminOrder(id)).toBe("/api/admin/orders/O-ADM");
+    expect(apiPaths.adminOrderPrintImage(id, "inline")).toBe(
+      "/api/admin/orders/O-ADM/print-image?disposition=inline",
+    );
+    expect(apiPaths.adminOrderPrintImageUpload(id)).toBe("/api/admin/orders/O-ADM/print-image");
     expect(apiPaths.adminOrderPrintDone(id)).toBe("/api/admin/orders/O-ADM/print-done");
     expect(apiPaths.adminOrderBalancePayment(id)).toBe("/api/admin/orders/O-ADM/balance-payment");
     expect(apiPaths.adminOrderBalancePaid(id)).toBe("/api/admin/orders/O-ADM/balance-paid");

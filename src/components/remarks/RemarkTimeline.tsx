@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { apiBinaryGet } from "../../lib/api";
-import { formatShortDateTime } from "../../lib/formatDisplay";
+import { apiBinaryGet } from "@/lib/api";
+import { formatShortDateTime } from "@/lib/formatDisplay";
+import { cn } from "@/lib/utils";
 
 export type RemarkEntry = {
   id?: string;
@@ -38,24 +39,30 @@ function RemarkImage({ url }: { url: string }) {
     };
   }, [url]);
 
-  if (failed) return <p className="small muted">Could not load image.</p>;
-  if (!src) return <p className="small muted">Loading image…</p>;
-  return <img className="remark-timeline__image" src={src} alt="Remark attachment" />;
+  if (failed) return <p className="text-xs text-muted-foreground">Could not load image.</p>;
+  if (!src) return <p className="text-xs text-muted-foreground">Loading image…</p>;
+  return (
+    <img
+      className="mt-2 block max-h-48 max-w-full rounded-md border border-border object-contain"
+      src={src}
+      alt="Remark attachment"
+    />
+  );
 }
 
 export function RemarkTimeline({ entries, imageUrl, emptyMessage = "No remarks yet." }: Props) {
   if (entries.length === 0) {
-    return <p className="small">{emptyMessage}</p>;
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
   return (
-    <ul className="remark-timeline">
+    <ul className="m-0 list-none p-0">
       {entries.map((row) => (
         <li
           key={row.id || `${row.createdAt}-${row.body.slice(0, 24)}`}
-          className="remark-timeline__item"
+          className={cn("border-b border-border py-3 last:border-b-0")}
         >
-          <div className="remark-timeline__time small">{formatShortDateTime(row.createdAt)}</div>
-          {row.body ? <div className="remark-timeline__body">{row.body}</div> : null}
+          <div className="mb-1 text-xs text-muted-foreground">{formatShortDateTime(row.createdAt)}</div>
+          {row.body ? <div className="whitespace-pre-wrap text-sm">{row.body}</div> : null}
           {row.imageKey && row.id ? <RemarkImage url={imageUrl(row.id)} /> : null}
         </li>
       ))}

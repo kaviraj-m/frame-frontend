@@ -1,17 +1,28 @@
 import { Link } from "react-router-dom";
-import { OrderIdCell } from "../../components/orders/OrderIdCell";
-import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
-import { fulfillmentQueueAction } from "../../lib/adminFulfillment";
-import { OrderRowAgeLegend } from "../../components/orders/OrderRowAgeLegend";
-import { orderRowAgeDataAttr, orderRowClassName } from "../../lib/orderCreatedAge";
-import { formatMoney, formatShortDateTime } from "../../lib/formatDisplay";
+import { OrderIdCell } from "@/components/orders/OrderIdCell";
+import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
+import { fulfillmentQueueAction } from "@/lib/adminFulfillment";
+import { OrderRowAgeLegend } from "@/components/orders/OrderRowAgeLegend";
+import { orderRowAgeDataAttr, orderRowClassName } from "@/lib/orderCreatedAge";
+import { formatMoney, formatShortDateTime } from "@/lib/formatDisplay";
 import type { AdminOrderRow } from "./adminOrderTypes";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 type Props = {
   orders: AdminOrderRow[];
   emptyMessage: string;
   patchBasePath?: string;
   showFulfillment?: boolean;
+  fulfillPath?: (orderId: string) => string;
 };
 
 export function AdminOrdersTable({
@@ -19,6 +30,7 @@ export function AdminOrdersTable({
   emptyMessage,
   patchBasePath = "/admin/orders/patch",
   showFulfillment = false,
+  fulfillPath = (orderId) => `/admin/orders/${encodeURIComponent(orderId)}`,
 }: Props) {
   const colSpan = showFulfillment ? 15 : 13;
 
@@ -27,97 +39,95 @@ export function AdminOrdersTable({
       <div className="mb-3 px-0.5">
         <OrderRowAgeLegend />
       </div>
-      <div className="table-wrap table-wrap--scroll">
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th>Order</th>
-            <th>Query</th>
-            <th>Customer</th>
-            <th>Phone</th>
-            <th>Email</th>
-            <th>Frame</th>
-            <th>Status</th>
-            {showFulfillment && <th>Print</th>}
-            <th>Payment</th>
-            <th>Balance</th>
-            <th>Tracking</th>
-            {showFulfillment && <th>Next action</th>}
-            <th>Created</th>
-            <th>Updated</th>
-            <th className="td-actions">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((o) => (
-            <tr
-              key={o.orderId}
-              className={orderRowClassName(o.createdAt, o.status)}
-              data-order-age={orderRowAgeDataAttr(o.createdAt, o.status)}
-            >
-              <td className="td-mono">
-                <OrderIdCell orderId={o.orderId} />
-              </td>
-              <td className="td-mono td-muted-id">{o.queryId}</td>
-              <td className="td-strong">{o.customerUsername?.trim() ? o.customerUsername : "—"}</td>
-              <td>{o.customerPhoneNumber?.trim() ? o.customerPhoneNumber : "—"}</td>
-              <td className="remark-clip" title={o.customerEmail || undefined}>
-                {o.customerEmail?.trim() ? o.customerEmail : "—"}
-              </td>
-              <td>{o.frameSize ?? "—"}</td>
-              <td>
-                <OrderStatusBadge status={o.status} />
-              </td>
-              {showFulfillment && (
-                <td>
-                  <span className="small">{o.printStage?.trim() ? o.printStage : "—"}</span>
-                </td>
-              )}
-              <td>
-                <span className="small">{o.paymentStatus ?? "—"}</span>
-                {o.paymentMode ? (
-                  <span className="muted small"> · {o.paymentMode}</span>
-                ) : null}
-              </td>
-              <td>{formatMoney(o.balanceAmount)}</td>
-              <td className="td-mono">{o.trackingNumber?.trim() ? o.trackingNumber : "—"}</td>
-              {showFulfillment && (
-                <td className="small">{fulfillmentQueueAction(o)}</td>
-              )}
-              <td className="date-cell">{formatShortDateTime(o.createdAt)}</td>
-              <td className="date-cell">{formatShortDateTime(o.updatedAt)}</td>
-              <td className="td-actions">
-                {showFulfillment ? (
-                  <Link
-                    className="btn btn--primary btn--sm"
-                    to={`/admin/orders/${encodeURIComponent(o.orderId)}`}
-                  >
-                    Fulfill
-                  </Link>
-                ) : (
-                  <Link
-                    className="btn btn--secondary btn--sm"
-                    to={`${patchBasePath}?orderId=${encodeURIComponent(o.orderId)}`}
-                  >
-                    Update
-                  </Link>
+      <div className="overflow-auto w-full">
+        <Table>
+          <TableHeaderBand>
+            <TableRow>
+              <TableHead>Order</TableHead>
+              <TableHead>Query</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Frame</TableHead>
+              <TableHead>Status</TableHead>
+              {showFulfillment && <TableHead>Print</TableHead>}
+              <TableHead>Payment</TableHead>
+              <TableHead>Balance</TableHead>
+              <TableHead>Tracking</TableHead>
+              {showFulfillment && <TableHead>Next action</TableHead>}
+              <TableHead>Created</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeaderBand>
+          <TableBody>
+            {orders.map((o) => (
+              <TableRow
+                key={o.orderId}
+                className={cn(orderRowClassName(o.createdAt, o.status))}
+                data-order-age={orderRowAgeDataAttr(o.createdAt, o.status)}
+              >
+                <TableCell className="font-mono text-xs">
+                  <OrderIdCell orderId={o.orderId} />
+                </TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{o.queryId}</TableCell>
+                <TableCell className="font-semibold">{o.customerUsername?.trim() ? o.customerUsername : "—"}</TableCell>
+                <TableCell>{o.customerPhoneNumber?.trim() ? o.customerPhoneNumber : "—"}</TableCell>
+                <TableCell className="max-w-[180px] truncate" title={o.customerEmail || undefined}>
+                  {o.customerEmail?.trim() ? o.customerEmail : "—"}
+                </TableCell>
+                <TableCell>{o.frameSize ?? "—"}</TableCell>
+                <TableCell>
+                  <OrderStatusBadge status={o.status} />
+                </TableCell>
+                {showFulfillment && (
+                  <TableCell>
+                    <span className="text-xs">{o.printStage?.trim() ? o.printStage : "—"}</span>
+                  </TableCell>
                 )}
-              </td>
-            </tr>
-          ))}
-          {orders.length === 0 && (
-            <tr className="empty-row">
-              <td colSpan={colSpan}>{emptyMessage}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      <div className="table-footer">
-        <p className="total-info">
+                <TableCell>
+                  <span className="text-xs">{o.paymentStatus ?? "—"}</span>
+                  {o.paymentMode ? (
+                    <span className="text-muted-foreground text-xs"> · {o.paymentMode}</span>
+                  ) : null}
+                </TableCell>
+                <TableCell>{formatMoney(o.balanceAmount)}</TableCell>
+                <TableCell className="font-mono text-xs">{o.trackingNumber?.trim() ? o.trackingNumber : "—"}</TableCell>
+                {showFulfillment && (
+                  <TableCell className="text-xs">{fulfillmentQueueAction(o)}</TableCell>
+                )}
+                <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(o.createdAt)}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(o.updatedAt)}</TableCell>
+                <TableCell className="text-right">
+                  {showFulfillment ? (
+                    <Button asChild size="sm">
+                      <Link className="btn" to={fulfillPath(o.orderId)}>
+                        Fulfill
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button asChild variant="secondary" size="sm">
+                      <Link className="btn" to={`${patchBasePath}?orderId=${encodeURIComponent(o.orderId)}`}>
+                        Update
+                      </Link>
+                    </Button>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {orders.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={colSpan} className="text-center text-muted-foreground py-8">
+                  {emptyMessage}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+        <p className="text-sm text-muted-foreground mt-3">
           Showing <strong>{orders.length}</strong> order{orders.length === 1 ? "" : "s"}
         </p>
       </div>
-    </div>
     </>
   );
 }

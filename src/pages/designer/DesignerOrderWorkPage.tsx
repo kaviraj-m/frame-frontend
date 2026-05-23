@@ -1,24 +1,36 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { DesignerWorkflowStepper } from "../../components/designer/DesignerWorkflowStepper";
-import { useConfirmDialog } from "../../hooks/useConfirmDialog";
-import { OrderAssetsPanel } from "../../components/orders/OrderAssetsPanel";
-import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
-import { RemarkTimeline, type RemarkEntry } from "../../components/remarks/RemarkTimeline";
-import { FilePickField } from "../../components/ui/FilePickField";
-import { PageHeader } from "../../components/ui/PageHeader";
-import { api, apiBinaryGet, apiUpload } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DesignerWorkflowStepper } from "@/components/designer/DesignerWorkflowStepper";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { OrderAssetsPanel } from "@/components/orders/OrderAssetsPanel";
+import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
+import { RemarkTimeline, type RemarkEntry } from "@/components/remarks/RemarkTimeline";
+import { FilePickField } from "@/components/ui/FilePickField";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { api, apiBinaryGet, apiUpload } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
+import { Card } from "@/components/common/Card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 import {
   canRecordCustomerResponse,
   canTakeOrder,
   canUploadPreview,
   isOrderGoneError,
-} from "../../lib/designerWorkflow";
-import { fileLabelFromKey, isExecutiveSourceAsset, type OrderAssetRow } from "../../lib/orderAssetLabels";
-import { validateRemarkOrImage } from "../../lib/fieldValidation";
-import type { OrderListRow } from "../../lib/orderListTypes";
+} from "@/lib/designerWorkflow";
+import { fileLabelFromKey, isExecutiveSourceAsset, type OrderAssetRow } from "@/lib/orderAssetLabels";
+import { validateRemarkOrImage } from "@/lib/fieldValidation";
+import type { OrderListRow } from "@/lib/orderListTypes";
 
 export function DesignerOrderWorkPage() {
   const nav = useNavigate();
@@ -295,28 +307,30 @@ export function DesignerOrderWorkPage() {
 
   if (!orderId) {
     return (
-      <div className="card">
-        <p className="error">Missing order id.</p>
-        <Link to="/designer/queue">← Queue</Link>
-      </div>
+      <Card>
+        <p className="text-destructive">Missing order id.</p>
+        <Link to="/designer/queue" className="text-sm text-primary hover:underline">
+          ← Queue
+        </Link>
+      </Card>
     );
   }
 
   if (orderGone) {
     return (
-      <div className="page-stack">
-        <nav className="breadcrumb">
+      <div className="flex flex-col gap-6 min-w-0 w-full">
+        <nav className="breadcrumb text-sm">
           <Link to="/designer/queue">Queue</Link>
         </nav>
-        <div className="card">
-          <h3>Order no longer in your queue</h3>
-          <p className="muted">
+        <Card>
+          <h3 className="text-lg font-semibold">Order no longer in your queue</h3>
+          <p className="text-sm text-muted-foreground">
             This order may have been approved and moved to production, or you no longer have access to it.
           </p>
-          <Link className="btn btn--primary" to="/designer/queue">
-            Back to queue
-          </Link>
-        </div>
+          <Button asChild className="mt-4">
+            <Link to="/designer/queue">Back to queue</Link>
+          </Button>
+        </Card>
       </div>
     );
   }
@@ -327,11 +341,11 @@ export function DesignerOrderWorkPage() {
   const isRevision = orderStatus.toUpperCase() === "DESIGN_REVISION_REQUIRED";
 
   return (
-    <div className="page-stack">
-      <nav className="breadcrumb">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
+      <nav className="breadcrumb text-sm">
         <Link to="/designer/queue">Queue</Link>
         <span className="breadcrumb-sep">/</span>
-        <span className="mono">{orderId}</span>
+        <span className="font-mono text-xs">{orderId}</span>
       </nav>
 
       <PageHeader
@@ -339,15 +353,16 @@ export function DesignerOrderWorkPage() {
         title="Work on order"
         description="Take the order, download executive photos, upload your preview for the customer, then record approve or revision when they respond."
         actions={
-          <button type="button" className="btn btn--secondary btn--sm" onClick={refresh} disabled={loading || busy}>
+          <Button type="button" variant="secondary" size="sm" onClick={refresh} disabled={loading || busy}>
             Refresh
-          </button>
+          </Button>
         }
       />
 
       {loading && !order ? (
-        <p className="muted">
-          <span className="spinner spinner--sm" aria-hidden /> Loading order…
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          Loading order…
         </p>
       ) : null}
 
@@ -355,18 +370,18 @@ export function DesignerOrderWorkPage() {
         <>
           <DesignerWorkflowStepper status={orderStatus} />
 
-          <div className="card">
-            <div className="inline-actions" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <Card>
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <strong>{order.customerUsername || "Customer"}</strong>
-                <span className="muted"> · Query {order.queryId}</span>
-                <span className="muted"> · Frame {order.frameSize || "—"}</span>
-                <div className="muted small" style={{ marginTop: 4 }}>
+                <span className="text-muted-foreground"> · Query {order.queryId}</span>
+                <span className="text-muted-foreground"> · Frame {order.frameSize || "—"}</span>
+                <div className="text-sm text-muted-foreground mt-1">
                   {order.customerPhoneNumber}
                   {order.customerEmail ? ` · ${order.customerEmail}` : ""}
                 </div>
                 {order.addressDetails?.trim() ? (
-                  <p className="muted small" style={{ marginTop: 8 }}>
+                  <p className="text-sm text-muted-foreground mt-2">
                     <strong>Delivery:</strong> {order.addressDetails}
                   </p>
                 ) : null}
@@ -374,45 +389,48 @@ export function DesignerOrderWorkPage() {
               <OrderStatusBadge status={order.status} />
             </div>
             {isRevision ? (
-              <div className="designer-revision-banner" role="status">
+              <div
+                className="rounded-md border border-[var(--warn)]/40 bg-[var(--warn)]/10 px-4 py-3 text-sm mt-4"
+                role="status"
+              >
                 <strong>Revision requested.</strong>{" "}
                 {order.designRemarks?.trim()
                   ? order.designRemarks
                   : "Take the order again and upload an updated preview for the customer."}
               </div>
             ) : order.designRemarks?.trim() ? (
-              <p className="muted" style={{ marginTop: 12 }}>
+              <p className="text-sm text-muted-foreground mt-3">
                 Last note: {order.designRemarks}
               </p>
             ) : null}
-          </div>
+          </Card>
         </>
       ) : null}
 
       {status && (
-        <div className="flash flash--success" role="status">
-          {status}
-        </div>
+        <Alert variant="success" role="status">
+          <AlertDescription>{status}</AlertDescription>
+        </Alert>
       )}
       {error && (
-        <div className="flash flash--error" role="alert">
-          {error}
-        </div>
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       {canTakeOrder(orderStatus) ? (
-        <div className="card">
-          <h3>1. Take order</h3>
-          <p className="muted">Claim this order from the queue so you can work on it.</p>
-          <button type="button" className="btn btn--primary" disabled={busy || uploadBusy} onClick={takeOrder}>
+        <Card>
+          <h3 className="text-lg font-semibold mb-2">1. Take order</h3>
+          <p className="text-sm text-muted-foreground mb-4">Claim this order from the queue so you can work on it.</p>
+          <Button type="button" disabled={busy || uploadBusy} onClick={takeOrder}>
             Take order
-          </button>
-        </div>
+          </Button>
+        </Card>
       ) : null}
 
-      <div className="card">
-        <h3>2. Executive photos</h3>
-        <p className="muted">Source and customer images uploaded when the order was confirmed.</p>
+      <Card>
+        <h3 className="text-lg font-semibold mb-2">2. Executive photos</h3>
+        <p className="text-sm text-muted-foreground mb-4">Source and customer images uploaded when the order was confirmed.</p>
         <OrderAssetsPanel
           orderId={orderId}
           assets={assets}
@@ -425,47 +443,47 @@ export function DesignerOrderWorkPage() {
           downloadAllBusy={downloadAllBusy}
           emptyMessage="No executive photos yet."
         />
-      </div>
+      </Card>
 
-      <div className="card">
-        <h3>3. Design preview</h3>
-        <p className="muted">
+      <Card>
+        <h3 className="text-lg font-semibold mb-2">3. Design preview</h3>
+        <p className="text-sm text-muted-foreground mb-4">
           Upload what you send the customer. Status becomes <strong>DESIGN_SHARED_WITH_CUSTOMER</strong> automatically.
         </p>
         {canUploadPreview(orderStatus) ? (
-          <form className="stack" onSubmit={uploadPreview}>
-            <input
+          <form className="space-y-4" onSubmit={uploadPreview}>
+            <Input
               type="file"
               accept="image/*,.pdf"
               disabled={uploadBusy || busy}
               onChange={(e) => setPreviewFile(e.target.files?.[0] ?? null)}
             />
-            <button type="submit" className="btn btn--primary" disabled={uploadBusy || busy || !previewFile}>
+            <Button type="submit" disabled={uploadBusy || busy || !previewFile}>
               {uploadBusy ? (
                 <>
-                  <span className="spinner spinner--sm" aria-hidden /> Uploading…
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Uploading…
                 </>
               ) : (
                 "Upload preview"
               )}
-            </button>
+            </Button>
           </form>
         ) : (
-          <p className="muted">Take the order first, or wait until revision is needed again.</p>
+          <p className="text-sm text-muted-foreground">Take the order first, or wait until revision is needed again.</p>
         )}
-        <div className="stack" style={{ marginTop: 20 }}>
-          <h4>Follow-up remarks</h4>
-          <p className="muted small">Notes while sharing previews with the customer. Each save adds a dated entry.</p>
+        <div className="space-y-4 mt-5">
+          <h4 className="font-semibold">Follow-up remarks</h4>
+          <p className="text-xs text-muted-foreground">Notes while sharing previews with the customer. Each save adds a dated entry.</p>
           <RemarkTimeline
             entries={previewRemarkHistory}
             imageUrl={(remarkId) => apiPaths.designerPreviewRemarkImage(orderId, remarkId)}
             emptyMessage="No remarks yet."
           />
-          <form className="stack" onSubmit={savePreviewRemark}>
-            <label>
+          <form className="space-y-4" onSubmit={savePreviewRemark}>
+            <label className="block space-y-2 text-sm font-medium">
               New remark
-              <textarea
-                className="textarea"
+              <Textarea
                 rows={3}
                 value={newPreviewRemark}
                 onChange={(e) => setNewPreviewRemark(e.target.value)}
@@ -476,7 +494,7 @@ export function DesignerOrderWorkPage() {
             <FilePickField
               label={
                 <>
-                  Photo <span className="muted">(optional)</span>
+                  Photo <span className="text-muted-foreground">(optional)</span>
                 </>
               }
               hint="Optional reference image for this note."
@@ -485,13 +503,12 @@ export function DesignerOrderWorkPage() {
               onFilesChange={(files) => setPreviewRemarkImage(files[0] ?? null)}
               disabled={previewRemarkSaving || busy || uploadBusy}
             />
-            <button
+            <Button
               type="submit"
-              className="btn btn--primary"
               disabled={previewRemarkSaving || busy || uploadBusy || !order}
             >
               {previewRemarkSaving ? "Saving…" : "Save"}
-            </button>
+            </Button>
           </form>
         </div>
         {previewAssets.length > 0 ? (
@@ -516,73 +533,72 @@ export function DesignerOrderWorkPage() {
             />
           </div>
         ) : null}
-      </div>
+      </Card>
 
       {canRecordCustomerResponse(orderStatus) ? (
-        <div className="card">
-          <h3>4. Customer response</h3>
-          <p className="muted">
+        <Card>
+          <h3 className="text-lg font-semibold mb-2">4. Customer response</h3>
+          <p className="text-sm text-muted-foreground mb-4">
             After the customer replies (outside this app), record the outcome. Approve sends the order to admin production.
           </p>
-          <label>
+          <label className="block space-y-2 text-sm font-medium">
             Remarks (optional)
-            <input
+            <Input
               placeholder="e.g. Customer approved layout"
               value={decisionRemarks}
               onChange={(e) => setDecisionRemarks(e.target.value)}
               disabled={busy || uploadBusy}
             />
           </label>
-          <div className="inline-actions" style={{ marginTop: 12 }}>
-            <button
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Button
               type="button"
-              className="btn btn--primary"
               disabled={busy || uploadBusy}
               onClick={() => decide("APPROVE")}
             >
               Design approved
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="btn btn--danger"
+              variant="destructive"
               disabled={busy || uploadBusy}
               onClick={() => decide("REJECT")}
             >
               Revision required
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       ) : null}
 
-      <Link to="/designer/queue" className="secondary-link">
+      <Link to="/designer/queue" className="text-sm text-muted-foreground hover:text-foreground">
         ← Back to queue
       </Link>
 
-      {imagePreviewLoading ? (
-        <div className="modal-backdrop" role="presentation">
-          <div className="modal-dialog preview-dialog">
-            <span className="spinner" aria-hidden />
-            <p className="muted">Loading preview…</p>
+      <Dialog
+        open={imagePreviewLoading || !!imagePreview}
+        onOpenChange={(v) => !v && closeImagePreview()}
+      >
+        <DialogContent className="sm:max-w-3xl" onPointerDownOutside={closeImagePreview}>
+          <DialogHeader>
+            <DialogTitle className="truncate">{imagePreview?.title ?? "Loading preview…"}</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center min-h-[200px]">
+            {imagePreviewLoading && (
+              <p className="text-sm text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                Loading preview…
+              </p>
+            )}
+            {imagePreview && (
+              <img
+                src={imagePreview.url}
+                alt={imagePreview.title}
+                className="max-h-[70vh] max-w-full object-contain rounded-md"
+              />
+            )}
           </div>
-        </div>
-      ) : null}
-
-      {imagePreview ? (
-        <div className="modal-backdrop" role="presentation" onClick={closeImagePreview}>
-          <div
-            className="modal-dialog preview-dialog"
-            role="dialog"
-            aria-modal="true"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3>{imagePreview.title}</h3>
-            <img src={imagePreview.url} alt={imagePreview.title} style={{ maxWidth: "100%", maxHeight: "70vh" }} />
-            <button type="button" className="btn btn--secondary" onClick={closeImagePreview}>
-              Close
-            </button>
-          </div>
-        </div>
-      ) : null}
+        </DialogContent>
+      </Dialog>
       <ConfirmDialog {...dialogProps} />
     </div>
   );

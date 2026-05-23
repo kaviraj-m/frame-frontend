@@ -1,12 +1,23 @@
 import { FormEvent, useEffect, useState } from "react";
-import { FormField } from "../../../components/ui/FormField";
+import { FormField } from "@/components/ui/FormField";
 import {
   firstError,
   validatePositiveNumber,
   validateRequired,
-} from "../../../lib/fieldValidation";
+} from "@/lib/fieldValidation";
 import type { AdminPricingRow } from "../adminPricingTypes";
 import type { AdminPricingUpsertBody } from "./useAdminPricingList";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 function priceInputValue(n: number | undefined): string {
   if (n == null || Number.isNaN(n)) return "";
@@ -15,7 +26,6 @@ function priceInputValue(n: number | undefined): string {
 
 type Props = {
   open: boolean;
-  /** When set, modal is in edit mode (frame size key is read-only). */
   editingRow: AdminPricingRow | null;
   onClose: () => void;
   onSave: (body: AdminPricingUpsertBody) => Promise<boolean>;
@@ -50,8 +60,6 @@ export function AdminPricingEditorModal({ open, editingRow, onClose, onSave, onD
     }
   }, [open, editingRow]);
 
-  if (!open) return null;
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitError("");
@@ -85,59 +93,46 @@ export function AdminPricingEditorModal({ open, editingRow, onClose, onSave, onD
   const title = isEdit ? "Edit frame size" : "New frame size";
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="modal-dialog modal-dialog--wide"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pricing-editor-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-toolbar">
-          <h2 id="pricing-editor-title" className="modal-title">
-            {title}
-          </h2>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-        <form className="modal-body" onSubmit={handleSubmit} noValidate>
-          <p className="muted" style={{ margin: 0 }}>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg" onPointerDownOutside={onClose}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+          <p className="text-sm text-muted-foreground">
             Executives pick payment mode first; the catalogue uses the matching online or cash price for this size.
           </p>
           {submitError ? (
-            <div className="flash flash--error" role="alert">
-              {submitError}
-            </div>
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
           ) : null}
 
-          <div className="field-grid field-grid--2">
-            <FormField
-              label="Frame size"
-              required={!isEdit}
-              error={fieldErrors.frameSize}
-              className="span-2"
-              hint={isEdit ? "Size key cannot be changed after creation." : "e.g. 12x18 — must match what executives select."}
-            >
-              <input
-                value={frameSize}
-                onChange={(e) => {
-                  setFrameSize(e.target.value);
-                  if (fieldErrors.frameSize) setFieldErrors((p) => ({ ...p, frameSize: "" }));
-                }}
-                placeholder="e.g. 12x18"
-                readOnly={isEdit}
-                className={isEdit ? "input-readonly" : undefined}
-                aria-invalid={!!fieldErrors.frameSize}
-              />
-            </FormField>
-          </div>
+          <FormField
+            label="Frame size"
+            required={!isEdit}
+            error={fieldErrors.frameSize}
+            className="sm:col-span-2"
+            hint={isEdit ? "Size key cannot be changed after creation." : "e.g. 12x18 — must match what executives select."}
+          >
+            <Input
+              value={frameSize}
+              onChange={(e) => {
+                setFrameSize(e.target.value);
+                if (fieldErrors.frameSize) setFieldErrors((p) => ({ ...p, frameSize: "" }));
+              }}
+              placeholder="e.g. 12x18"
+              readOnly={isEdit}
+              className={cn(isEdit && "opacity-70")}
+              aria-invalid={!!fieldErrors.frameSize}
+            />
+          </FormField>
 
           <div>
-            <p className="modal-body__section-title">Prices</p>
-            <div className="field-grid field-grid--2">
+            <p className="text-sm font-semibold mb-3">Prices</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField label="Online price" required error={fieldErrors.onlinePrice}>
-                <input
+                <Input
                   value={onlinePrice}
                   onChange={(e) => {
                     setOnlinePrice(e.target.value);
@@ -151,7 +146,7 @@ export function AdminPricingEditorModal({ open, editingRow, onClose, onSave, onD
                 />
               </FormField>
               <FormField label="Cash price" required error={fieldErrors.cashPrice}>
-                <input
+                <Input
                   value={cashPrice}
                   onChange={(e) => {
                     setCashPrice(e.target.value);
@@ -167,7 +162,7 @@ export function AdminPricingEditorModal({ open, editingRow, onClose, onSave, onD
             </div>
           </div>
 
-          <label className="modal-body__checkbox">
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
               checked={isActive}
@@ -176,29 +171,34 @@ export function AdminPricingEditorModal({ open, editingRow, onClose, onSave, onD
             <span>Active — shown in executive catalogue</span>
           </label>
 
-          <div
-            className={
-              isEdit && onDelete ? "modal-footer" : "modal-footer modal-footer--end"
-            }
+          <DialogFooter
+            className={cn(
+              "gap-2 sm:gap-0",
+              isEdit && onDelete ? "sm:justify-between" : "",
+            )}
           >
             {isEdit && onDelete ? (
-              <button
+              <Button
                 type="button"
-                className="btn btn--danger btn--sm"
+                variant="destructive"
+                size="sm"
                 onClick={onDelete}
                 disabled={saving}
               >
                 Delete frame size
-              </button>
+              </Button>
             ) : null}
-            <div className="modal-footer__primary">
-              <button type="submit" className="btn btn--primary" disabled={saving}>
+            <div className="flex gap-2 sm:ml-auto">
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={saving}>
                 {saving ? "Saving…" : "Save pricing"}
-              </button>
+              </Button>
             </div>
-          </div>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

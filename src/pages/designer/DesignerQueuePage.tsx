@@ -1,22 +1,35 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
-import { OrderIdCell } from "../../components/orders/OrderIdCell";
-import { OrderRowAgeLegend } from "../../components/orders/OrderRowAgeLegend";
-import { orderRowAgeDataAttr, orderRowClassName } from "../../lib/orderCreatedAge";
-import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
-import { PageHeader } from "../../components/ui/PageHeader";
-import { api } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
+import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { OrderIdCell } from "@/components/orders/OrderIdCell";
+import { OrderRowAgeLegend } from "@/components/orders/OrderRowAgeLegend";
+import { orderRowAgeDataAttr, orderRowClassName } from "@/lib/orderCreatedAge";
+import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { api } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
 import {
   designerQueueAction,
   matchesDesignerFilter,
   orderMatchesSearch,
   sortQueueOrders,
   type DesignerQueueFilter,
-} from "../../lib/designerWorkflow";
-import { formatShortDateTime } from "../../lib/formatDisplay";
-import type { OrderListRow } from "../../lib/orderListTypes";
+} from "@/lib/designerWorkflow";
+import { formatShortDateTime } from "@/lib/formatDisplay";
+import type { OrderListRow } from "@/lib/orderListTypes";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 const FILTERS: { id: DesignerQueueFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -76,40 +89,41 @@ export function DesignerQueuePage() {
   }, [queue]);
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
       <PageHeader
         kicker="Designer"
         title="Work queue"
         description="Orders ready for design work, sorted by urgency."
         actions={
-          <button type="button" className="btn btn--secondary btn--sm" onClick={refresh} disabled={loading}>
+          <Button type="button" variant="secondary" size="sm" onClick={refresh} disabled={loading}>
             Refresh
-          </button>
+          </Button>
         }
       />
 
-      <div className="data-board">
-        <div className="designer-filter-chips" role="group" aria-label="Filter by status">
+      <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
           {FILTERS.map((f) => (
-            <button
+            <Button
               key={f.id}
               type="button"
-              className={`designer-filter-chip${statusFilter === f.id ? " designer-filter-chip--active" : ""}`}
+              variant={statusFilter === f.id ? "default" : "outline"}
+              size="sm"
               onClick={() => setStatusFilter(f.id)}
             >
               {f.label}
               {f.id !== "all" ? ` (${filterCounts[f.id]})` : ` (${filterCounts.all})`}
-            </button>
+            </Button>
           ))}
         </div>
 
-        <div className="data-board__toolbar">
-          <div className="data-board__search-wrap">
-            <span className="data-board__search-icon">
+        <div className="flex flex-wrap items-center gap-2.5 mb-4">
+          <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+            <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
               <DataBoardSearchIcon />
             </span>
-            <input
-              className="data-board__search"
+            <Input
+              className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search queue, customer, order…"
@@ -123,79 +137,78 @@ export function DesignerQueuePage() {
         </div>
 
         {error && (
-          <div className="flash flash--error" role="alert">
-            {error}
-          </div>
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
 
         {loading ? (
-          <p className="muted" style={{ padding: "24px 0" }}>
-            <span className="spinner spinner--sm" aria-hidden /> Loading queue…
+          <p className="text-sm text-muted-foreground flex items-center gap-2 py-6">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+            Loading queue…
           </p>
         ) : (
-          <div className="table-wrap table-wrap--scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Order</th>
-                  <th>Query</th>
-                  <th>Customer</th>
-                  <th>Phone</th>
-                  <th>Frame</th>
-                  <th>Status</th>
-                  <th>Next action</th>
-                  <th>Updated</th>
-                  <th className="td-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-auto w-full">
+            <Table>
+              <TableHeaderBand>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Query</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Frame</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Next action</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeaderBand>
+              <TableBody>
                 {filtered.map((o) => (
-                  <tr
+                  <TableRow
                     key={o.orderId}
-                    className={orderRowClassName(o.createdAt, o.status)}
+                    className={cn(orderRowClassName(o.createdAt, o.status))}
                     data-order-age={orderRowAgeDataAttr(o.createdAt, o.status)}
                   >
-                    <td className="td-mono">
+                    <TableCell className="font-mono text-xs">
                       <OrderIdCell orderId={o.orderId} />
-                    </td>
-                    <td className="td-mono td-muted-id">{o.queryId}</td>
-                    <td className="td-strong">{o.customerUsername?.trim() ? o.customerUsername : "—"}</td>
-                    <td>{o.customerPhoneNumber?.trim() ? o.customerPhoneNumber : "—"}</td>
-                    <td>{o.frameSize ?? "—"}</td>
-                    <td>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">{o.queryId}</TableCell>
+                    <TableCell className="font-semibold">{o.customerUsername?.trim() ? o.customerUsername : "—"}</TableCell>
+                    <TableCell>{o.customerPhoneNumber?.trim() ? o.customerPhoneNumber : "—"}</TableCell>
+                    <TableCell>{o.frameSize ?? "—"}</TableCell>
+                    <TableCell>
                       <OrderStatusBadge status={o.status} />
-                    </td>
-                    <td className="muted">{designerQueueAction(o.status)}</td>
-                    <td className="date-cell">{formatShortDateTime(o.updatedAt)}</td>
-                    <td className="td-actions">
-                      <Link className="btn btn--primary btn--sm" to={`/designer/orders/${encodeURIComponent(o.orderId)}`}>
-                        Open
-                      </Link>
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{designerQueueAction(o.status)}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(o.updatedAt)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild size="sm">
+                        <Link to={`/designer/orders/${encodeURIComponent(o.orderId)}`}>Open</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
                 {filtered.length === 0 && (
-                  <tr className="empty-row">
-                    <td colSpan={9}>
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       {queue.length === 0
                         ? "No items in the queue."
                         : "No rows match your search or filter."}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </tbody>
-            </table>
-            <div className="table-footer">
-              <p className="total-info">
-                Showing <strong>{filtered.length}</strong> item{filtered.length === 1 ? "" : "s"}
-                {search.trim() || statusFilter !== "all" ? ` (of ${queue.length})` : ""}
-              </p>
-            </div>
+              </TableBody>
+            </Table>
+            <p className="text-sm text-muted-foreground mt-3">
+              Showing <strong>{filtered.length}</strong> item{filtered.length === 1 ? "" : "s"}
+              {search.trim() || statusFilter !== "all" ? ` (of ${queue.length})` : ""}
+            </p>
           </div>
         )}
 
         {!loading && queue.length === 0 && !error ? (
-          <p className="data-board__footer-note">
+          <p className="text-sm text-muted-foreground mt-3.5">
             Orders appear here after an executive confirms payment. Check back after new orders are confirmed.
           </p>
         ) : null}

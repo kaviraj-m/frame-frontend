@@ -1,5 +1,6 @@
-import { fulfillmentStepStates, type FulfillmentStepId } from "../../lib/adminFulfillment";
-import type { OrderListRow } from "../../lib/orderListTypes";
+import { WorkflowStepper } from "@/components/ui/WorkflowStepper";
+import { fulfillmentStepStates, type FulfillmentStepId } from "@/lib/adminFulfillment";
+import type { OrderListRow } from "@/lib/orderListTypes";
 
 const STEPS: { id: FulfillmentStepId; label: string; num: number }[] = [
   { id: "print", label: "Print", num: 1 },
@@ -9,18 +10,11 @@ const STEPS: { id: FulfillmentStepId; label: string; num: number }[] = [
 
 export function AdminFulfillmentStepper({ order }: { order: OrderListRow }) {
   const states = fulfillmentStepStates(order);
-
   return (
-    <div className="workflow-stepper" aria-label="Fulfillment workflow progress">
-      {STEPS.map((step) => (
-        <div
-          key={step.id}
-          className={`workflow-step workflow-step--${states[step.id]}`}
-        >
-          <span className="workflow-step__num">{step.num}</span>
-          {step.label}
-        </div>
-      ))}
-    </div>
+    <WorkflowStepper
+      steps={STEPS}
+      states={states}
+      ariaLabel="Fulfillment workflow progress"
+    />
   );
 }

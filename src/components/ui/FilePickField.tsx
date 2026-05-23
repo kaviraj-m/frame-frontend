@@ -1,4 +1,5 @@
 import { useId, useRef, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 export const IMAGE_FILE_ACCEPT = "image/jpeg,image/png,image/webp,image/*,.jpg,.jpeg,.png,.webp";
 
@@ -63,58 +64,60 @@ export function FilePickField({
   const pickLabel = chooseLabel ?? (multiple ? "Choose images" : "Choose file");
 
   return (
-    <div className="file-pick">
-      <span className="file-pick__label">{label}</span>
-      {hint ? <p className="muted small file-pick__hint">{hint}</p> : null}
+    <div className="space-y-2">
+      <span className="text-sm font-medium">{label}</span>
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
       <input
         ref={inputRef}
         id={id}
-        className="file-pick__input"
+        className="sr-only"
         type="file"
         accept={accept}
         multiple={multiple}
         disabled={disabled}
         onChange={handleChange}
       />
-      <div className="file-pick__actions">
-        <button
+      <div className="flex flex-wrap gap-2">
+        <Button
           type="button"
-          className="btn btn--secondary btn--sm"
+          variant="secondary"
+          size="sm"
           disabled={disabled}
           onClick={() => inputRef.current?.click()}
         >
           {pickLabel}
-        </button>
+        </Button>
         {files.length > 0 && !disabled && (
-          <button type="button" className="btn btn--ghost btn--sm" onClick={clearAll}>
+          <Button type="button" variant="ghost" size="sm" onClick={clearAll}>
             Clear
-          </button>
+          </Button>
         )}
       </div>
       {files.length > 0 ? (
         <>
-          <p className="file-pick__status" role="status">
+          <p className="text-xs text-muted-foreground" role="status">
             {files.length} {multiple ? "image" : "file"}
             {files.length === 1 ? "" : "s"} selected
           </p>
-          <ul className="file-pick-list">
+          <ul className="space-y-1.5">
             {files.map((f, i) => (
-              <li key={`${fileKey(f)}-${i}`}>
-                <span className="small">{f.name}</span>
-                <button
+              <li key={`${fileKey(f)}-${i}`} className="flex items-center justify-between gap-2">
+                <span className="text-xs truncate">{f.name}</span>
+                <Button
                   type="button"
-                  className="btn btn--ghost btn--sm"
+                  variant="ghost"
+                  size="sm"
                   disabled={disabled}
                   onClick={() => removeAt(i)}
                 >
                   Remove
-                </button>
+                </Button>
               </li>
             ))}
           </ul>
         </>
       ) : (
-        <p className="muted small file-pick__empty">No files selected yet.</p>
+        <p className="text-xs text-muted-foreground">No files selected yet.</p>
       )}
     </div>
   );

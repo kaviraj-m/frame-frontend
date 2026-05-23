@@ -1,12 +1,30 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
-import { FilePickField } from "../../components/ui/FilePickField";
-import { useConfirmDialog } from "../../hooks/useConfirmDialog";
-import { api, apiBinaryGet, apiUpload } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
-import { formatShortDateTime } from "../../lib/formatDisplay";
-import { PageHeader } from "../../components/ui/PageHeader";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { FilePickField } from "@/components/ui/FilePickField";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { api, apiBinaryGet, apiUpload } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
+import { formatShortDateTime } from "@/lib/formatDisplay";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/common/Card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
+import { Loader2 } from "lucide-react";
 
 type OrderAssetRow = {
   id: string;
@@ -68,15 +86,6 @@ export function ExecutiveOrderAssetsPage() {
       }
     };
   }, []);
-
-  useEffect(() => {
-    if (!imagePreview && !imagePreviewLoading) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeImagePreview();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [imagePreview, imagePreviewLoading, closeImagePreview]);
 
   const loadAssets = useCallback(async () => {
     if (!orderId.trim()) return;
@@ -211,19 +220,21 @@ export function ExecutiveOrderAssetsPage() {
 
   if (!orderId) {
     return (
-      <div className="card">
-        <p className="error">Missing order id.</p>
-        <Link to="/executive/orders">← Orders</Link>
-      </div>
+      <Card>
+        <p className="text-destructive">Missing order id.</p>
+        <Link to="/executive/orders" className="text-sm text-primary hover:underline">
+          ← Orders
+        </Link>
+      </Card>
     );
   }
 
   return (
-    <div className="page-stack">
-      <nav className="breadcrumb">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
+      <nav className="breadcrumb text-sm">
         <Link to="/executive/orders">Orders</Link>
         <span className="breadcrumb-sep">/</span>
-        <span className="mono">{orderId}</span>
+        <span className="font-mono text-xs">{orderId}</span>
         <span className="breadcrumb-sep">/</span>
         <span>Source photos</span>
       </nav>
@@ -232,84 +243,96 @@ export function ExecutiveOrderAssetsPage() {
         title="Source photos"
         description="Everything the lab needs before design starts. Files already on this order (including the customer frame image from confirm) appear below. Add more from your computer."
         actions={
-          <button type="button" className="btn btn--secondary btn--sm" onClick={() => loadAssets()}>
+          <Button type="button" variant="secondary" size="sm" onClick={() => loadAssets()}>
             Refresh list
-          </button>
+          </Button>
         }
       />
-      {status && <div className="flash flash--success" role="status">{status}</div>}
-      {error && <div className="flash flash--error" role="alert">{error}</div>}
+      {status && (
+        <Alert variant="success" role="status">
+          <AlertDescription>{status}</AlertDescription>
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-      <div className="card">
-        <h3>Files on this order</h3>
-        <p className="muted">Framing images from confirm order show as &quot;Customer image (frame)&quot; (there may be several). Source uploads show as &quot;Source photo (print)&quot;.</p>
-        <div className="table-wrap table-wrap--scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Storage key</th>
-                <th>Added</th>
-                <th className="td-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
+      <Card>
+        <h3 className="text-lg font-semibold mb-2">Files on this order</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Framing images from confirm order show as &quot;Customer image (frame)&quot; (there may be several). Source uploads show as &quot;Source photo (print)&quot;.
+        </p>
+        <div className="overflow-auto w-full">
+          <Table>
+            <TableHeaderBand>
+              <TableRow>
+                <TableHead>Type</TableHead>
+                <TableHead>Storage key</TableHead>
+                <TableHead>Added</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeaderBand>
+            <TableBody>
               {assets.map((a) => (
-                <tr key={a.id}>
-                  <td className="td-strong">{assetTypeLabel(a.assetType)}</td>
-                  <td className="td-mono">{a.r2Key}</td>
-                  <td className="date-cell">{formatShortDateTime(a.createdAt)}</td>
-                  <td className="td-actions">
-                    <div className="inline-actions">
-                      <button type="button" className="btn btn--ghost btn--sm" onClick={() => viewAsset(a.id, a.r2Key)}>
+                <TableRow key={a.id}>
+                  <TableCell className="font-semibold">{assetTypeLabel(a.assetType)}</TableCell>
+                  <TableCell className="font-mono text-xs">{a.r2Key}</TableCell>
+                  <TableCell className="whitespace-nowrap">{formatShortDateTime(a.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => viewAsset(a.id, a.r2Key)}>
                         View
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="button"
-                        className="btn btn--secondary btn--sm"
+                        variant="secondary"
+                        size="sm"
                         onClick={() => downloadAsset(a.id, a.r2Key)}
                       >
                         Download
-                      </button>
+                      </Button>
                       {canExecutiveDeleteAsset(a.assetType) && (
-                        <button
+                        <Button
                           type="button"
-                          className="btn btn--danger btn--sm"
+                          variant="destructive"
+                          size="sm"
                           disabled={deletingAssetId !== null}
                           onClick={() => deleteAsset(a.id, a.assetType)}
                         >
                           {deletingAssetId === a.id ? (
                             <>
-                              <span className="spinner spinner--sm" aria-hidden />
+                              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                               Deleting…
                             </>
                           ) : (
                             "Delete"
                           )}
-                        </button>
+                        </Button>
                       )}
                     </div>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ))}
               {assets.length === 0 && (
-                <tr className="empty-row">
-                  <td colSpan={4}>No files yet. Confirm the order with a customer image, or upload a source photo below.</td>
-                </tr>
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No files yet. Confirm the order with a customer image, or upload a source photo below.
+                  </TableCell>
+                </TableRow>
               )}
-            </tbody>
-          </table>
-          <div className="table-footer">
-            <p className="total-info">
-              Showing <strong>{assets.length}</strong> file{assets.length === 1 ? "" : "s"}
-            </p>
-          </div>
+            </TableBody>
+          </Table>
+          <p className="text-sm text-muted-foreground mt-3">
+            Showing <strong>{assets.length}</strong> file{assets.length === 1 ? "" : "s"}
+          </p>
         </div>
-      </div>
+      </Card>
 
-      <div className="card">
-        <h3>Upload from computer</h3>
-        <form className="stack" onSubmit={uploadSourceFile} aria-busy={uploadBusy}>
+      <Card>
+        <h3 className="text-lg font-semibold mb-4">Upload from computer</h3>
+        <form className="space-y-4" onSubmit={uploadSourceFile} aria-busy={uploadBusy}>
           <FilePickField
             label="Source photos"
             hint="JPEG / PNG / WebP, up to about 32MB each. Pick several at once, or use Choose images again to add more — previous picks stay in the list."
@@ -319,48 +342,44 @@ export function ExecutiveOrderAssetsPage() {
             onFilesChange={setSourceFiles}
             disabled={uploadBusy}
           />
-          <button type="submit" className="btn btn--primary btn--block" disabled={uploadBusy || sourceFiles.length === 0}>
+          <Button type="submit" className="w-full" disabled={uploadBusy || sourceFiles.length === 0}>
             {uploadBusy && uploadProgress ? (
               <>
-                <span className="spinner" aria-hidden />
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 Uploading {uploadProgress.current} / {uploadProgress.total}…
               </>
             ) : (
               `Upload${sourceFiles.length > 1 ? ` ${sourceFiles.length} images` : sourceFiles.length === 1 ? " image" : ""}`
             )}
-          </button>
+          </Button>
         </form>
-      </div>
-      <Link to="/executive/orders" className="secondary-link">← Back to orders</Link>
+      </Card>
+      <Link to="/executive/orders" className="text-sm text-muted-foreground hover:text-foreground">
+        ← Back to orders
+      </Link>
 
-      {(imagePreviewLoading || imagePreview) && (
-        <div
-          className="image-preview-backdrop"
-          role="presentation"
-          onClick={closeImagePreview}
-        >
-          <div
-            className="image-preview-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={imagePreview ? `Preview: ${imagePreview.title}` : "Loading preview"}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="image-preview-toolbar">
-              <span className="image-preview-title td-mono small">{imagePreview?.title ?? "…"}</span>
-              <button type="button" className="btn btn--secondary btn--sm" onClick={closeImagePreview}>
-                Close
-              </button>
-            </div>
-            <div className="image-preview-body">
-              {imagePreviewLoading && <p className="muted image-preview-loading">Loading image…</p>}
-              {imagePreview && (
-                <img src={imagePreview.url} alt={imagePreview.title} className="image-preview-img" />
-              )}
-            </div>
+      <Dialog
+        open={imagePreviewLoading || !!imagePreview}
+        onOpenChange={(v) => !v && closeImagePreview()}
+      >
+        <DialogContent className="sm:max-w-3xl" onPointerDownOutside={closeImagePreview}>
+          <DialogHeader>
+            <DialogTitle className="font-mono text-sm truncate">
+              {imagePreview?.title ?? "Loading preview…"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center min-h-[200px]">
+            {imagePreviewLoading && <p className="text-sm text-muted-foreground">Loading image…</p>}
+            {imagePreview && (
+              <img
+                src={imagePreview.url}
+                alt={imagePreview.title}
+                className="max-h-[70vh] max-w-full object-contain rounded-md"
+              />
+            )}
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
       <ConfirmDialog {...dialogProps} />
     </div>
   );

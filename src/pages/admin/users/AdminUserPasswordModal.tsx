@@ -1,7 +1,17 @@
 import { FormEvent, useEffect, useState } from "react";
-import { FormField } from "../../../components/ui/FormField";
-import { firstError, validateRequired } from "../../../lib/fieldValidation";
+import { FormField } from "@/components/ui/FormField";
+import { firstError, validateRequired } from "@/lib/fieldValidation";
 import type { AdminUserRow } from "./adminUserTypes";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type Props = {
   open: boolean;
@@ -25,7 +35,7 @@ export function AdminUserPasswordModal({ open, user, onClose, onSave }: Props) {
     setSubmitError("");
   }, [open, user]);
 
-  if (!open || !user) return null;
+  if (!user) return null;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -59,34 +69,23 @@ export function AdminUserPasswordModal({ open, user, onClose, onSave }: Props) {
   }
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="modal-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="user-password-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-toolbar">
-          <h2 id="user-password-title" className="modal-title">
-            Change password
-          </h2>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-        <form className="modal-body" onSubmit={handleSubmit} noValidate>
-          <p className="muted" style={{ margin: "0 0 12px" }}>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-md" onPointerDownOutside={onClose}>
+        <DialogHeader>
+          <DialogTitle>Change password</DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
+          <p className="text-sm text-muted-foreground">
             Set a new password for <strong>{user.username}</strong>. Share it out-of-band — it is
             not emailed from here.
           </p>
           {submitError ? (
-            <div className="flash flash--error" role="alert">
-              {submitError}
-            </div>
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
           ) : null}
           <FormField label="New password" required error={fieldErrors.password}>
-            <input
+            <Input
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -98,7 +97,7 @@ export function AdminUserPasswordModal({ open, user, onClose, onSave }: Props) {
             />
           </FormField>
           <FormField label="Confirm password" required error={fieldErrors.confirm}>
-            <input
+            <Input
               value={confirm}
               onChange={(e) => {
                 setConfirm(e.target.value);
@@ -109,11 +108,16 @@ export function AdminUserPasswordModal({ open, user, onClose, onSave }: Props) {
               aria-invalid={!!fieldErrors.confirm}
             />
           </FormField>
-          <button type="submit" className="btn btn--primary" disabled={saving}>
-            {saving ? "Saving…" : "Update password"}
-          </button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : "Update password"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

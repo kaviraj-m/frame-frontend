@@ -1,18 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
-import { PageHeader } from "../../components/ui/PageHeader";
-import { api } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
+import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { api } from "@/lib/api";
+import {
+  adminFulfillmentPortal,
+  type FulfillmentPortalConfig,
+} from "@/lib/fulfillmentPortal";
 import {
   fulfillmentQueueAction,
   matchesFulfillmentFilter,
   sortFulfillmentOrders,
   type FulfillmentQueueFilter,
-} from "../../lib/adminFulfillment";
-import { isPostDesignApprovalStatus } from "../../lib/orderStatusGroups";
+} from "@/lib/adminFulfillment";
+import { isPostDesignApprovalStatus } from "@/lib/orderStatusGroups";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { AdminOrdersTable } from "./AdminOrdersTable";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 
 const FILTERS: { id: FulfillmentQueueFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -22,7 +29,11 @@ const FILTERS: { id: FulfillmentQueueFilter; label: string }[] = [
   { id: "done", label: "Done" },
 ];
 
-export function AdminOrdersProductionPage() {
+export function OrdersProductionPage({
+  portal = adminFulfillmentPortal,
+}: {
+  portal?: FulfillmentPortalConfig;
+}) {
   const [orders, setOrders] = useState<AdminOrderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,7 +44,7 @@ export function AdminOrdersProductionPage() {
     setError("");
     setLoading(true);
     try {
-      const all = await api<AdminOrderRow[]>(apiPaths.orders);
+      const all = await api<AdminOrderRow[]>(portal.productionOrdersApi);
       const production = all.filter((o) => isPostDesignApprovalStatus(o.status));
       setOrders(sortFulfillmentOrders(production));
     } catch (e) {
@@ -41,7 +52,7 @@ export function AdminOrdersProductionPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [portal.productionOrdersApi]);
 
   useEffect(() => {
     refresh();
@@ -82,69 +93,83 @@ export function AdminOrdersProductionPage() {
   }, [orders]);
 
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
       <PageHeader
-        kicker="Admin"
+        kicker={portal.kicker}
         title="Production & dispatch"
         description="Orders after design approval — print, balance, courier, and completion."
       />
 
-      <div className="workflow-filter-chips" role="tablist" aria-label="Production filters">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Production filters">
         {FILTERS.map((f) => (
-          <button
+          <Button
             key={f.id}
             type="button"
             role="tab"
             aria-selected={statusFilter === f.id}
-            className={`workflow-filter-chip${statusFilter === f.id ? " workflow-filter-chip--active" : ""}`}
+            variant={statusFilter === f.id ? "default" : "outline"}
+            size="sm"
             onClick={() => setStatusFilter(f.id)}
           >
             {f.label}
-            <span className="workflow-filter-chip__count">{filterCounts[f.id]}</span>
-          </button>
+            <Badge variant="secondary" className="ml-1.5 px-1.5 py-0 text-[0.65rem]">
+              {filterCounts[f.id]}
+            </Badge>
+          </Button>
         ))}
       </div>
 
-      <div className="data-board">
-        <div className="data-board__toolbar">
-          <div className="data-board__search-wrap">
-            <span className="data-board__search-icon">
+      <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
+        <div className="flex flex-wrap items-center gap-2.5 mb-4">
+          <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+            <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
               <DataBoardSearchIcon />
             </span>
-            <input
-              className="data-board__search"
+            <Input
+              className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search production queue…"
               aria-label="Search orders"
             />
           </div>
-          <div className="data-board__toolbar-actions">
-            <button type="button" className="btn btn--secondary btn--sm" onClick={refresh} disabled={loading}>
+          <div className="ml-auto flex flex-wrap gap-2 items-center">
+            <Button type="button" variant="secondary" size="sm" onClick={refresh} disabled={loading}>
               Refresh
-            </button>
+            </Button>
           </div>
         </div>
         {error && (
-          <div className="flash flash--error" role="alert">
-            {error}
-          </div>
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         {loading ? (
-          <p className="muted">Loading production queue…</p>
+          <p className="text-sm text-muted-foreground">Loading production queue…</p>
         ) : (
           <AdminOrdersTable
             orders={filtered}
             emptyMessage="No orders in this view. They appear here once status is DESIGN_APPROVED or later."
             showFulfillment
+            fulfillPath={portal.fulfillPath}
           />
         )}
-        <p className="data-board__footer-note">
-          <Link to="/admin/orders">← All orders</Link>
-          {" · "}
-          <Link to="/admin/orders/patch">Advanced patch</Link>
+        <p className="text-sm text-muted-foreground mt-3.5">
+          <Link to={portal.ordersListPath} className="text-primary font-semibold hover:underline">← All orders</Link>
+          {portal.patchPath ? (
+            <>
+              {" · "}
+              <Link to={portal.patchPath} className="text-primary font-semibold hover:underline">
+                Advanced patch
+              </Link>
+            </>
+          ) : null}
         </p>
       </div>
     </div>
   );
+}
+
+export function AdminOrdersProductionPage() {
+  return <OrdersProductionPage portal={adminFulfillmentPortal} />;
 }

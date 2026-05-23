@@ -1,4 +1,5 @@
-import { designerStepStates, type WorkflowStepId } from "../../lib/designerWorkflow";
+import { WorkflowStepper } from "@/components/ui/WorkflowStepper";
+import { designerStepStates, type WorkflowStepId } from "@/lib/designerWorkflow";
 
 const STEPS: { id: WorkflowStepId; label: string; num: number }[] = [
   { id: "take", label: "Take order", num: 1 },
@@ -9,18 +10,7 @@ const STEPS: { id: WorkflowStepId; label: string; num: number }[] = [
 
 export function DesignerWorkflowStepper({ status }: { status: string }) {
   const states = designerStepStates(status);
-
   return (
-    <div className="designer-workflow-stepper" aria-label="Design workflow progress">
-      {STEPS.map((step) => (
-        <div
-          key={step.id}
-          className={`designer-workflow-step designer-workflow-step--${states[step.id]}`}
-        >
-          <span className="designer-workflow-step__num">{step.num}</span>
-          {step.label}
-        </div>
-      ))}
-    </div>
+    <WorkflowStepper steps={STEPS} states={states} ariaLabel="Design workflow progress" />
   );
 }

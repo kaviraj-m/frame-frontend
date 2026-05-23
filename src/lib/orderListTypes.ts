@@ -15,6 +15,7 @@ export type OrderListRow = {
   fullPayment?: number;
   paymentStatus?: string;
   printStage?: string;
+  printedFrameImage?: string;
   courierStage?: string;
   trackingNumber?: string;
   createdAt?: string;

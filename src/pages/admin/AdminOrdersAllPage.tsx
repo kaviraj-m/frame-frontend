@@ -1,14 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { OrderIdCell } from "../../components/orders/OrderIdCell";
-import { OrderRowAgeLegend } from "../../components/orders/OrderRowAgeLegend";
-import { orderRowAgeDataAttr, orderRowClassName } from "../../lib/orderCreatedAge";
-import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
-import { OrderStatusBadge } from "../../components/ui/OrderStatusBadge";
-import { api } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
-import { formatShortDate, formatTableDateTime } from "../../lib/formatDisplay";
+import { OrderIdCell } from "@/components/orders/OrderIdCell";
+import { OrderRowAgeLegend } from "@/components/orders/OrderRowAgeLegend";
+import { orderRowAgeDataAttr, orderRowClassName } from "@/lib/orderCreatedAge";
+import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
+import { api } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
+import { formatShortDate, formatTableDateTime } from "@/lib/formatDisplay";
 import type { AdminOrderRow } from "./adminOrderTypes";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 import {
   AVATAR_COLORS,
   FRAMEWORKS_FILTERS,
@@ -103,60 +115,74 @@ function UserPanel({
   ];
 
   return (
-    <aside className="data-board__panel">
-      <div className="data-board__panel-head">
-        <button type="button" className="data-board__panel-close" onClick={onClose} aria-label="Close panel">
+    <aside className="w-full shrink-0 bg-card border border-border rounded-lg flex flex-col overflow-hidden shadow-sm xl:w-[300px] xl:max-h-[min(65vh,880px)] xl:sticky xl:top-4">
+      <div className="relative p-5 pb-4 border-b border-border text-center">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="absolute right-2 top-2 h-7 w-7"
+          onClick={onClose}
+          aria-label="Close panel"
+        >
           ✕
-        </button>
-        <div className="data-board__panel-avatar" style={{ background: AVATAR_COLORS[idx] }}>
+        </Button>
+        <div
+          className="w-14 h-14 rounded-full mx-auto flex items-center justify-center text-white font-bold text-sm"
+          style={{ background: AVATAR_COLORS[idx] }}
+        >
           {initials(displayName)}
         </div>
-        <div className="data-board__panel-name">{displayName}</div>
-        <div className="data-board__panel-sub">
+        <div className="font-semibold mt-3">{displayName}</div>
+        <div className="text-xs text-muted-foreground mt-1">
           {order.queryId}
           {order.customerEmail?.trim() ? ` · ${order.customerEmail.trim()}` : ""}
         </div>
-        <div className="data-board__panel-status">
-          <span className="data-board__panel-status-dot" aria-hidden />
+        <div className="inline-flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--ok)]" aria-hidden />
           {(order.status ?? "").trim() || "—"}
         </div>
       </div>
-      <div className="data-board__panel-body">
-        <div className="data-board__panel-stats">
-          <div className="data-board__panel-stat">
-            <div className="data-board__panel-stat-num">{userOrders.length}</div>
-            <div className="data-board__panel-stat-label">Total orders</div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-md border border-border p-3 text-center">
+            <div className="text-xl font-bold">{userOrders.length}</div>
+            <div className="text-xs text-muted-foreground">Total orders</div>
           </div>
-          <div className="data-board__panel-stat">
-            <div className="data-board__panel-stat-num">{activeCount}</div>
-            <div className="data-board__panel-stat-label">Active</div>
+          <div className="rounded-md border border-border p-3 text-center">
+            <div className="text-xl font-bold">{activeCount}</div>
+            <div className="text-xs text-muted-foreground">Active</div>
           </div>
         </div>
         <div>
-          <div className="data-board__panel-section-title">Contact information</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Contact information
+          </div>
           {contactRows.map(({ label, value, icon }) => (
-            <div key={label} className="data-board__panel-contact">
-              <div className="data-board__panel-contact-icon">{icon}</div>
+            <div key={label} className="flex gap-2.5 mb-3 text-sm">
+              <div className="text-muted-foreground shrink-0">{icon}</div>
               <div>
-                <div className="data-board__panel-contact-label">{label}</div>
-                <div className="data-board__panel-contact-value">{value}</div>
+                <div className="text-xs text-muted-foreground">{label}</div>
+                <div className="whitespace-pre-wrap">{value}</div>
               </div>
             </div>
           ))}
         </div>
         <div>
-          <div className="data-board__panel-section-title">Order history</div>
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+            Order history
+          </div>
           {userOrders.map((o) => {
             const cr = formatTableDateTime(o.createdAt);
             const ur = formatTableDateTime(o.updatedAt);
             return (
-              <div key={o.orderId} className="data-board__panel-history-card">
-                <div className="data-board__panel-history-top">
-                  <span className="data-board__panel-history-id">{o.orderId}</span>
+              <div key={o.orderId} className="rounded-md border border-border p-3 mb-2 text-sm">
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <span className="font-mono text-xs">{o.orderId}</span>
                   <OrderStatusBadge status={o.status} small />
                 </div>
-                <div className="data-board__panel-history-remark">{orderRemark(o)}</div>
-                <div className="data-board__panel-history-meta">
+                <div className="text-muted-foreground text-xs mb-1">{orderRemark(o)}</div>
+                <div className="text-[0.65rem] text-muted-foreground">
                   Created {cr.date}
                   {cr.time ? ` · ${cr.time}` : ""} · Updated {ur.date}
                   {ur.time ? ` · ${ur.time}` : ""}
@@ -226,22 +252,22 @@ export function AdminOrdersAllPage() {
   }, [sortedOrders, search, activeFilter]);
 
   return (
-    <div className="data-board">
+    <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
       {error ? (
-        <div className="flash flash--error" style={{ marginBottom: 14 }} role="alert">
-          {error}
-        </div>
+        <Alert variant="destructive" role="alert" className="mb-3.5">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       ) : null}
 
-      <div className="data-board__layout">
-        <div className="data-board__main">
-          <div className="data-board__toolbar">
-            <div className="data-board__search-wrap">
-              <span className="data-board__search-icon">
+      <div className="flex min-w-0 flex-col gap-4 min-h-[min(65vh,880px)] xl:flex-row xl:items-start">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2.5 mb-4">
+            <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+              <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
                 <DataBoardSearchIcon />
               </span>
-              <input
-                className="data-board__search"
+              <Input
+                className="pl-9"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, order ID, phone…"
@@ -249,20 +275,23 @@ export function AdminOrdersAllPage() {
               />
             </div>
             {FRAMEWORKS_FILTERS.map((f) => (
-              <button
+              <Button
                 key={f}
                 type="button"
-                className={`data-board__chip${activeFilter === f ? " is-active" : ""}`}
+                variant={activeFilter === f ? "default" : "outline"}
+                size="sm"
                 onClick={() => setActiveFilter(f)}
               >
                 {f === "all" ? "All" : f}
-              </button>
+              </Button>
             ))}
-            <div className="data-board__toolbar-actions">
-              <Link to="/admin/orders/patch" className="btn btn--primary btn--sm data-board__btn-ico">
-                <IconPlus />
-                New order
-              </Link>
+            <div className="ml-auto flex flex-wrap gap-2 items-center">
+              <Button asChild size="sm" className="gap-1.5">
+                <Link to="/admin/orders/patch">
+                  <IconPlus />
+                  New order
+                </Link>
+              </Button>
             </div>
           </div>
 
@@ -270,22 +299,22 @@ export function AdminOrdersAllPage() {
             <OrderRowAgeLegend />
           </div>
 
-          <div className="table-wrap table-wrap--scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Query ID</th>
-                  <th>Customer</th>
-                  <th>Phone</th>
-                  <th>Remarks</th>
-                  <th>Created</th>
-                  <th>Updated</th>
-                  <th>Status</th>
-                  <th className="td-actions">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className="overflow-auto w-full">
+            <Table>
+              <TableHeaderBand>
+                <TableRow>
+                  <TableHead>Order ID</TableHead>
+                  <TableHead>Query ID</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Remarks</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead>Updated</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeaderBand>
+              <TableBody>
                 {filteredOrders.map((row) => {
                   const user = row.customerUsername?.trim() || "Customer";
                   const key = customerKey(row);
@@ -295,59 +324,67 @@ export function AdminOrdersAllPage() {
                   const ur = formatTableDateTime(row.updatedAt);
                   const rem = orderRemark(row);
                   return (
-                    <tr
+                    <TableRow
                       key={row.orderId}
-                      className={orderRowClassName(
-                        row.createdAt,
-                        row.status,
-                        isSelected ? "is-selected" : undefined,
+                      className={cn(
+                        "cursor-pointer",
+                        orderRowClassName(
+                          row.createdAt,
+                          row.status,
+                          isSelected ? "is-selected" : undefined,
+                        ),
                       )}
                       data-order-age={orderRowAgeDataAttr(row.createdAt, row.status)}
                       onClick={() => setSelectedOrder(isSelected ? null : row)}
                     >
-                      <td>
+                      <TableCell>
                         <OrderIdCell orderId={row.orderId} />
-                      </td>
-                      <td>
-                        <span className="td-muted-id">{row.queryId}</span>
-                      </td>
-                      <td>
-                        <div className="data-board__cust-row">
-                          <div className="data-board__avatar" style={{ background: AVATAR_COLORS[cidx] }}>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-xs">{row.queryId}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-[0.72rem] shrink-0"
+                            style={{ background: AVATAR_COLORS[cidx] }}
+                          >
                             {initials(user)}
                           </div>
-                          <div>
-                            <div className="data-board__cust-name">{user}</div>
-                            <div className="data-board__cust-email">{row.customerEmail?.trim() || "—"}</div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm truncate">{user}</div>
+                            <div className="text-[0.68rem] text-muted-foreground truncate">
+                              {row.customerEmail?.trim() || "—"}
+                            </div>
                           </div>
                         </div>
-                      </td>
-                      <td>{row.customerPhoneNumber?.trim() || "—"}</td>
-                      <td>
-                        <span className="data-board__remark remark-clip" title={rem}>
+                      </TableCell>
+                      <TableCell>{row.customerPhoneNumber?.trim() || "—"}</TableCell>
+                      <TableCell>
+                        <span className="block max-w-[220px] truncate text-sm text-muted-foreground" title={rem}>
                           {rem}
                         </span>
-                      </td>
-                      <td>
-                        <div className="data-board__dt-stack">
-                          <div className="data-board__dt-main">{cr.date}</div>
-                          <div className="data-board__dt-sub">{cr.time}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <div className="text-sm text-muted-foreground">{cr.date}</div>
+                          <div className="text-xs text-muted-foreground/80">{cr.time}</div>
                         </div>
-                      </td>
-                      <td>
-                        <div className="data-board__dt-stack">
-                          <div className="data-board__dt-main">{ur.date}</div>
-                          <div className="data-board__dt-sub">{ur.time}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <div className="text-sm text-muted-foreground">{ur.date}</div>
+                          <div className="text-xs text-muted-foreground/80">{ur.time}</div>
                         </div>
-                      </td>
-                      <td>
+                      </TableCell>
+                      <TableCell>
                         <OrderStatusBadge status={row.status} />
-                      </td>
-                      <td className="td-actions">
-                        <div className="data-board__row-actions">
-                          <button
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex gap-1 justify-end">
+                          <Button
                             type="button"
-                            className="data-board__icon-btn"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
                             title="View customer"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -359,53 +396,67 @@ export function AdminOrdersAllPage() {
                               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                               <circle cx="12" cy="12" r="3" />
                             </svg>
-                          </button>
-                          <Link
-                            to={`/admin/orders/patch?orderId=${encodeURIComponent(row.orderId)}`}
-                            className="data-board__icon-btn"
+                          </Button>
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
                             title="Update order"
                             onClick={(e) => e.stopPropagation()}
-                            aria-label="Update order"
                           >
-                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                            </svg>
-                          </Link>
+                            <Link
+                              to={`/admin/orders/patch?orderId=${encodeURIComponent(row.orderId)}`}
+                              aria-label="Update order"
+                            >
+                              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                              </svg>
+                            </Link>
+                          </Button>
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
                 {filteredOrders.length === 0 ? (
-                  <tr className="empty-row">
-                    <td colSpan={9}>No orders match your filters.</td>
-                  </tr>
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                      No orders match your filters.
+                    </TableCell>
+                  </TableRow>
                 ) : null}
-              </tbody>
-            </table>
-            <div className="table-footer">
-              <p className="total-info">
+              </TableBody>
+            </Table>
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
+              <p className="text-sm text-muted-foreground">
                 Showing <strong>{filteredOrders.length}</strong> of <strong>{orders.length}</strong> orders
               </p>
-              <div className="data-board__pager">
-                <button type="button" className="data-board__page-btn" disabled aria-hidden>
+              <div className="flex gap-1">
+                <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled aria-hidden>
                   ‹
-                </button>
-                <button type="button" className="data-board__page-btn is-current">
+                </Button>
+                <Button type="button" variant="default" size="icon" className="h-7 w-7">
                   1
-                </button>
-                <button type="button" className="data-board__page-btn" disabled aria-hidden>
+                </Button>
+                <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled aria-hidden>
                   ›
-                </button>
+                </Button>
               </div>
             </div>
           </div>
 
-          <p className="data-board__footer-note">
-            <Link to="/admin/orders/production">Production &amp; dispatch</Link>
+          <p className="text-sm text-muted-foreground mt-3.5">
+            <Link to="/admin/orders/production" className="text-primary font-semibold hover:underline">
+              Production &amp; dispatch
+            </Link>
             {" · "}
-            <button type="button" className="data-board__text-btn" onClick={refresh}>
+            <button
+              type="button"
+              className="text-primary font-semibold hover:underline bg-transparent border-0 p-0 cursor-pointer"
+              onClick={refresh}
+            >
               Refresh data
             </button>
           </p>

@@ -1,15 +1,15 @@
-import { PageHeader } from "../../components/ui/PageHeader";
-import { AttendancePanel } from "../../components/AttendancePanel";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { MyAttendanceDay } from "@/components/attendance/MyAttendanceDay";
 
 export function ExecutiveAttendancePage() {
   return (
-    <div className="page-stack">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
       <PageHeader
         kicker="Time"
-        title="Attendance"
-        description="Clock in, take breaks, and clock out. Leaving this tab for more than 30 seconds ends your session automatically."
+        title="My attendance"
+        description="Present and break times are tracked automatically while you work on Memorix. All times are in IST (India)."
       />
-      <AttendancePanel />
+      <MyAttendanceDay apiPrefix="/api/executive" />
     </div>
   );
 }

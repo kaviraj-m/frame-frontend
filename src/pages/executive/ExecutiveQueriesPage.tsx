@@ -1,10 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { DataBoardSearchIcon } from "../../components/ui/DataBoardSearchIcon";
-import { api } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
-import { formatShortDateTime, truncate } from "../../lib/formatDisplay";
-
+import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { api } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
+import { formatShortDateTime, truncate } from "@/lib/formatDisplay";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
 type Query = {
   queryId: string;
   customerUsername: string;
@@ -19,8 +29,6 @@ export function ExecutiveQueriesPage() {
   const [queries, setQueries] = useState<Query[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [waBusyId, setWaBusyId] = useState<string | null>(null);
-
   async function loadQueries() {
     setError("");
     try {
@@ -34,19 +42,6 @@ export function ExecutiveQueriesPage() {
   useEffect(() => {
     loadQueries();
   }, []);
-
-  async function openWhatsApp(queryId: string) {
-    setError("");
-    setWaBusyId(queryId);
-    try {
-      const link = await api<{ redirectUrl: string }>(apiPaths.executiveQueryWhatsApp(queryId));
-      window.open(link.redirectUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setWaBusyId(null);
-    }
-  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return queries;
@@ -62,92 +57,91 @@ export function ExecutiveQueriesPage() {
   }, [queries, search]);
 
   return (
-    <div className="data-board">
-      <div className="data-board__toolbar">
-        <div className="data-board__search-wrap">
-          <span className="data-board__search-icon">
+    <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+          <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
-          <input
-            className="data-board__search"
+          <Input
+            className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search queries, customer, phone…"
             aria-label="Search queries"
           />
         </div>
-        <div className="data-board__toolbar-actions">
-          <Link to="/executive/queries/new" className="btn btn--primary btn--sm">
-            New query
-          </Link>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={loadQueries}>
+        <div className="ml-auto flex flex-wrap gap-2 items-center">
+          <Button asChild size="sm">
+            <Link to="/executive/queries/new">New query</Link>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={loadQueries}>
             Refresh
-          </button>
+          </Button>
         </div>
       </div>
-      {error && <div className="flash flash--error" role="alert">{error}</div>}
-      <div className="table-wrap table-wrap--scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Query</th>
-              <th>Customer</th>
-              <th>Phone</th>
-              <th>Email</th>
-              <th>Remarks</th>
-              <th>Created</th>
-              <th>Updated</th>
-              <th className="td-actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      {error && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <div className="overflow-auto w-full">
+        <Table>
+          <TableHeaderBand>
+            <TableRow>
+              <TableHead>Query</TableHead>
+              <TableHead>Customer</TableHead>
+              <TableHead>Phone</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Remarks</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeaderBand>
+          <TableBody>
             {filtered.map((q) => (
-              <tr key={q.queryId}>
-                <td className="td-mono td-order-id">{q.queryId}</td>
-                <td className="td-strong">{q.customerUsername}</td>
-                <td>{q.customerPhoneNumber}</td>
-                <td className="remark-clip" title={q.customerEmail || undefined}>
+              <TableRow key={q.queryId}>
+                <TableCell className="font-mono text-xs">{q.queryId}</TableCell>
+                <TableCell className="font-semibold">{q.customerUsername}</TableCell>
+                <TableCell>{q.customerPhoneNumber}</TableCell>
+                <TableCell className="max-w-[180px] truncate" title={q.customerEmail || undefined}>
                   {q.customerEmail?.trim() ? q.customerEmail : "—"}
-                </td>
-                <td className="remark-clip" title={q.remarks || undefined}>
+                </TableCell>
+                <TableCell className="max-w-[220px] truncate" title={q.remarks || undefined}>
                   {truncate(q.remarks || "—", 48)}
-                </td>
-                <td className="date-cell">{formatShortDateTime(q.createdAt)}</td>
-                <td className="date-cell">{formatShortDateTime(q.updatedAt)}</td>
-                <td className="td-actions">
-                  <div className="inline-actions">
-                    <button
-                      type="button"
-                      className="small-btn small-btn--whatsapp"
-                      disabled={waBusyId === q.queryId}
-                      title={`Chat with ${q.customerUsername} on WhatsApp`}
-                      onClick={() => openWhatsApp(q.queryId)}
-                    >
-                      {waBusyId === q.queryId ? "Opening…" : "WhatsApp"}
-                    </button>
-                    <Link className="small-btn" to={`/executive/queries/${encodeURIComponent(q.queryId)}/remarks`}>
-                      Remarks
-                    </Link>
-                    <Link className="btn btn--primary btn--sm" to={`/executive/orders/new/${encodeURIComponent(q.queryId)}`}>
-                      Confirm order
-                    </Link>
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(q.createdAt)}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(q.updatedAt)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/executive/queries/${encodeURIComponent(q.queryId)}/remarks`}>
+                        Remarks
+                      </Link>
+                    </Button>
+                    <Button asChild size="sm">
+                      <Link to={`/executive/orders/new/${encodeURIComponent(q.queryId)}`}>
+                        Confirm order
+                      </Link>
+                    </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr className="empty-row">
-                <td colSpan={8}>{queries.length === 0 ? "No queries yet. Create one with New query." : "No rows match your search."}</td>
-              </tr>
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  {queries.length === 0 ? "No queries yet. Create one with New query." : "No rows match your search."}
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-        <div className="table-footer">
-          <p className="total-info">
-            Showing <strong>{filtered.length}</strong> quer{filtered.length === 1 ? "y" : "ies"}
-            {search.trim() ? ` (of ${queries.length})` : ""}
-          </p>
-        </div>
+          </TableBody>
+        </Table>
+        <p className="text-sm text-muted-foreground mt-3">
+          Showing <strong>{filtered.length}</strong> quer{filtered.length === 1 ? "y" : "ies"}
+          {search.trim() ? ` (of ${queries.length})` : ""}
+        </p>
       </div>
     </div>
   );

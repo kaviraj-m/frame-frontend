@@ -1,12 +1,24 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { DataBoardSearchIcon } from "../../../components/ui/DataBoardSearchIcon";
-import { useConfirmDialog } from "../../../hooks/useConfirmDialog";
-import { formatMoney } from "../../../lib/formatDisplay";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
+import { formatMoney } from "@/lib/formatDisplay";
 import type { AdminPricingRow } from "../adminPricingTypes";
 import { AdminPricingEditorModal } from "./AdminPricingEditorModal";
 import { useAdminPricingList } from "./useAdminPricingList";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
 
 function displayPrice(n: number | undefined | null): string {
   if (n == null || Number.isNaN(n)) return "—";
@@ -51,101 +63,105 @@ export function AdminPricingPage() {
   }
 
   return (
-    <div className="data-board">
-      <nav className="breadcrumb" style={{ marginBottom: 12 }}>
+    <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
+      <nav className="breadcrumb text-sm mb-3">
         <Link to="/admin/users">Admin</Link>
         <span className="breadcrumb-sep">/</span>
         <span>Pricing</span>
       </nav>
-      <p className="muted" style={{ margin: "0 0 12px" }}>
+      <p className="text-sm text-muted-foreground mb-3">
         Set online and cash full prices per frame size (e.g. 12x18). Executives choose payment mode first, then frame size uses the matching catalogue price.
       </p>
-      <div className="data-board__toolbar">
-        <div className="data-board__search-wrap">
-          <span className="data-board__search-icon">
+      <div className="flex flex-wrap items-center gap-2.5 mb-4">
+        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+          <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
-          <input
-            className="data-board__search"
+          <Input
+            className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search frame size…"
             aria-label="Search pricing"
           />
         </div>
-        <div className="data-board__toolbar-actions">
-          <button type="button" className="btn btn--primary btn--sm" onClick={openCreate}>
+        <div className="ml-auto flex flex-wrap gap-2 items-center">
+          <Button type="button" size="sm" onClick={openCreate}>
             New frame size
-          </button>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={loadRows}>
+          </Button>
+          <Button type="button" variant="secondary" size="sm" onClick={loadRows}>
             Refresh list
-          </button>
+          </Button>
         </div>
       </div>
-      {msg && <div className="flash flash--success" role="status">{msg}</div>}
-      {err && <div className="flash flash--error" role="alert">{err}</div>}
+      {msg && (
+        <Alert variant="success" role="status">
+          <AlertDescription>{msg}</AlertDescription>
+        </Alert>
+      )}
+      {err && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{err}</AlertDescription>
+        </Alert>
+      )}
 
-      <div className="table-wrap table-wrap--scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Frame size</th>
-              <th>Online</th>
-              <th>Cash</th>
-              <th>Active</th>
-              <th className="td-actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="overflow-auto w-full">
+        <Table>
+          <TableHeaderBand>
+            <TableRow>
+              <TableHead>Frame size</TableHead>
+              <TableHead>Online</TableHead>
+              <TableHead>Cash</TableHead>
+              <TableHead>Active</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeaderBand>
+          <TableBody>
             {filtered.map((r) => (
-              <tr key={r.frameSize}>
-                <td className="td-strong">{r.frameSize}</td>
-                <td>{displayPrice(r.onlinePrice)}</td>
-                <td>{displayPrice(r.cashPrice)}</td>
-                <td>
-                  {r.isActive ? (
-                    <span className="pill pill--neutral">Yes</span>
-                  ) : (
-                    <span className="pill pill--neutral">No</span>
-                  )}
-                </td>
-                <td className="td-actions">
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <button
+              <TableRow key={r.frameSize}>
+                <TableCell className="font-semibold">{r.frameSize}</TableCell>
+                <TableCell>{displayPrice(r.onlinePrice)}</TableCell>
+                <TableCell>{displayPrice(r.cashPrice)}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary">{r.isActive ? "Yes" : "No"}</Badge>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex gap-2 flex-wrap justify-end">
+                    <Button
                       type="button"
-                      className="btn btn--secondary btn--sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => openEdit(r)}
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
-                      className="btn btn--secondary btn--sm"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => requestDelete(r)}
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
             {filtered.length === 0 && (
-              <tr className="empty-row">
-                <td colSpan={5}>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   {rows.length === 0
                     ? "No frame sizes yet. Use “New frame size” to add one."
                     : "No rows match your search."}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-        <div className="table-footer">
-          <p className="total-info">
-            Showing <strong>{filtered.length}</strong> frame size{filtered.length === 1 ? "" : "s"}
-            {search.trim() ? ` (of ${rows.length})` : ""}
-          </p>
-        </div>
+          </TableBody>
+        </Table>
+        <p className="text-sm text-muted-foreground mt-3">
+          Showing <strong>{filtered.length}</strong> frame size{filtered.length === 1 ? "" : "s"}
+          {search.trim() ? ` (of ${rows.length})` : ""}
+        </p>
       </div>
 
       <AdminPricingEditorModal

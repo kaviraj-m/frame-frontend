@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { SmartAttendanceBanner } from "../../components/SmartAttendanceBanner";
+import { AttendanceStatusChip } from "../../components/AttendanceStatusChip";
 import { DashboardShell } from "../../components/layout/DashboardShell";
 import type { ShellNavSection } from "../../components/layout/DashboardShell";
 import { SmartAttendanceProvider } from "../../context/SmartAttendanceContext";
@@ -22,10 +22,11 @@ export function DesignerLayout() {
       subtitle="Work queue, previews, and sign-off"
       navSections={navSections}
       hideTopbar
+      attendanceApiPrefix="/api/designer"
     >
       <SmartAttendanceProvider apiPrefix="/api/designer">
         <div className="executive-app">
-          <SmartAttendanceBanner />
+          <AttendanceStatusChip />
           <Outlet />
         </div>
       </SmartAttendanceProvider>

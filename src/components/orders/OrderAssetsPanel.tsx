@@ -1,12 +1,26 @@
 import { useEffect, useRef, useState } from "react";
-import { apiBinaryGet } from "../../lib/api";
+import { apiBinaryGet } from "@/lib/api";
 import {
   assetTypeLabel,
   fileLabelFromKey,
   type OrderAssetRow,
-} from "../../lib/orderAssetLabels";
-import { formatShortDateTime } from "../../lib/formatDisplay";
-import { ExternalLinkIcon } from "../ui/ExternalLinkIcon";
+} from "@/lib/orderAssetLabels";
+import { formatShortDateTime } from "@/lib/formatDisplay";
+import { ExternalLinkIcon } from "@/components/ui/ExternalLinkIcon";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeaderBand,
+  TableRow,
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
+
+const WHATSAPP_BTN =
+  "border border-[rgba(37,211,102,0.55)] bg-[rgba(37,211,102,0.14)] text-[#d4f5e0] font-semibold hover:border-[rgba(37,211,102,0.85)] hover:bg-[rgba(37,211,102,0.22)] hover:text-[#f0fff5]";
 
 function isImageKey(key: string): boolean {
   return /\.(jpe?g|png|gif|webp|bmp)$/i.test(key);
@@ -23,7 +37,6 @@ type OrderAssetsPanelProps = {
   onDownload: (assetId: string, r2Key: string) => void;
   onDownloadAll?: () => void;
   downloadAllBusy?: boolean;
-  /** Shown in Actions (first row only) — opens WhatsApp with draft message in a new tab. */
   onWhatsApp?: () => void;
   whatsappBusy?: boolean;
   whatsappDisabled?: boolean;
@@ -72,21 +85,18 @@ function AssetThumbnail({
   return (
     <button
       type="button"
-      className="designer-asset-thumb"
+      className="flex flex-col gap-1 rounded-md border border-border overflow-hidden hover:border-primary/50 transition-colors text-left"
       onClick={() => onView(asset.id, asset.r2Key)}
       title={label}
     >
       {url ? (
-        <img src={url} alt={label} loading="lazy" />
+        <img src={url} alt={label} loading="lazy" className="aspect-square object-cover w-full" />
       ) : (
-        <div
-          style={{ aspectRatio: "1", display: "grid", placeItems: "center", fontSize: "0.75rem" }}
-          className="muted"
-        >
+        <div className="aspect-square grid place-items-center text-xs text-muted-foreground bg-muted/30">
           {isImageKey(asset.r2Key) ? "…" : "PDF"}
         </div>
       )}
-      <span className="designer-asset-thumb__label">{assetTypeLabel(asset.assetType)}</span>
+      <span className="text-[0.65rem] px-2 pb-2 text-muted-foreground truncate">{assetTypeLabel(asset.assetType)}</span>
     </button>
   );
 }
@@ -112,13 +122,13 @@ export function OrderAssetsPanel({
   const imageRows = rows.filter((a) => isImageKey(a.r2Key));
 
   if (rows.length === 0) {
-    return <p className="muted">{emptyMessage}</p>;
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
     <>
       {showThumbnailGrid && imageRows.length > 0 ? (
-        <div className="designer-asset-grid">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(100px,1fr))] gap-3">
           {imageRows.map((a) => (
             <AssetThumbnail
               key={a.id}
@@ -132,53 +142,58 @@ export function OrderAssetsPanel({
       ) : null}
 
       {onDownloadAll && rows.length > 0 ? (
-        <div className="inline-actions" style={{ marginTop: showThumbnailGrid ? 12 : 0, marginBottom: 12 }}>
-          <button
+        <div className={cn("flex gap-2", showThumbnailGrid ? "mt-3 mb-3" : "mb-3")}>
+          <Button
             type="button"
-            className="btn btn--secondary btn--sm"
+            variant="secondary"
+            size="sm"
             disabled={downloadAllBusy}
             onClick={onDownloadAll}
           >
             {downloadAllBusy ? (
               <>
-                <span className="spinner spinner--sm" aria-hidden /> Downloading…
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                Downloading…
               </>
             ) : (
               "Download all"
             )}
-          </button>
+          </Button>
         </div>
       ) : null}
 
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              {showTypeColumn ? <th>Type</th> : null}
-              <th>File</th>
-              <th>Uploaded</th>
-              <th className="td-actions">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
+      <div className="overflow-auto w-full">
+        <Table>
+          <TableHeaderBand>
+            <TableRow>
+              {showTypeColumn ? <TableHead>Type</TableHead> : null}
+              <TableHead>File</TableHead>
+              <TableHead>Uploaded</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeaderBand>
+          <TableBody>
             {rows.map((a, rowIndex) => (
-              <tr key={a.id}>
-                {showTypeColumn ? <td>{assetTypeLabel(a.assetType)}</td> : null}
-                <td className="td-mono">{fileLabelFromKey(a.r2Key)}</td>
-                <td className="date-cell">{a.createdAt ? formatShortDateTime(a.createdAt) : "—"}</td>
-                <td className="td-actions">
-                  <div className="inline-actions td-actions-stack">
+              <TableRow key={a.id}>
+                {showTypeColumn ? <TableCell>{assetTypeLabel(a.assetType)}</TableCell> : null}
+                <TableCell className="font-mono text-xs">{fileLabelFromKey(a.r2Key)}</TableCell>
+                <TableCell className="whitespace-nowrap text-xs">
+                  {a.createdAt ? formatShortDateTime(a.createdAt) : "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end gap-2">
                     {onWhatsApp && rowIndex === 0 ? (
-                      <button
+                      <Button
                         type="button"
-                        className="btn btn--sm btn--whatsapp-action"
+                        size="sm"
+                        className={cn(WHATSAPP_BTN)}
                         disabled={whatsappBusy || whatsappDisabled}
                         title={whatsappTitle}
                         onClick={onWhatsApp}
                       >
                         {whatsappBusy ? (
                           <>
-                            <span className="spinner spinner--sm" aria-hidden />
+                            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
                             Opening…
                           </>
                         ) : (
@@ -187,29 +202,30 @@ export function OrderAssetsPanel({
                             WhatsApp
                           </>
                         )}
-                      </button>
+                      </Button>
                     ) : null}
-                    <button type="button" className="btn btn--ghost btn--sm" onClick={() => onView(a.id, a.r2Key)}>
-                      View
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn--secondary btn--sm"
-                      onClick={() => onDownload(a.id, a.r2Key)}
-                    >
-                      Download
-                    </button>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => onView(a.id, a.r2Key)}>
+                        View
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => onDownload(a.id, a.r2Key)}
+                      >
+                        Download
+                      </Button>
+                    </div>
                   </div>
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-        <div className="table-footer">
-          <p className="total-info">
-            <strong>{rows.length}</strong> file{rows.length === 1 ? "" : "s"}
-          </p>
-        </div>
+          </TableBody>
+        </Table>
+        <p className="text-sm text-muted-foreground mt-3">
+          <strong>{rows.length}</strong> file{rows.length === 1 ? "" : "s"}
+        </p>
       </div>
     </>
   );

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   canDispatch,
   canMarkPrintDone,
+  canUploadPrintImage,
+  hasPrintImage,
   canWhatsAppDispatch,
   canWhatsAppPrint,
   hasSavedTracking,
@@ -25,7 +27,10 @@ const base: OrderListRow = {
 describe("adminFulfillment", () => {
   it("suggests print action for design approved", () => {
     expect(fulfillmentQueueAction(base)).toBe("Mark print done");
-    expect(canMarkPrintDone(base)).toBe(true);
+    expect(canUploadPrintImage(base)).toBe(true);
+    expect(canMarkPrintDone(base)).toBe(false);
+    expect(hasPrintImage(base)).toBe(false);
+    expect(canMarkPrintDone({ ...base, printedFrameImage: "orders/x/print.jpg" })).toBe(true);
     expect(canWhatsAppPrint(base)).toBe(true);
   });
 

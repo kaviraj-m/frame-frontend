@@ -1,15 +1,29 @@
 import { FormEvent, useEffect, useState } from "react";
-import { FormField } from "../../../components/ui/FormField";
+import { FormField } from "@/components/ui/FormField";
 import {
   firstError,
   validateEmailOptional,
   validateRequired,
-} from "../../../lib/fieldValidation";
+} from "@/lib/fieldValidation";
 import type {
   AdminUserCreateBody,
   AdminUserRow,
   AdminUserUpdateBody,
 } from "./adminUserTypes";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+
+const selectClass =
+  "h-10 w-full rounded-md border border-input bg-background px-3 text-sm";
 
 type Props = {
   open: boolean;
@@ -63,8 +77,6 @@ export function AdminUserEditorModal({
     }
   }, [open, editingUser]);
 
-  if (!open) return null;
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setSubmitError("");
@@ -113,54 +125,43 @@ export function AdminUserEditorModal({
   const title = isEdit ? "Edit user" : "New user";
 
   return (
-    <div className="modal-backdrop" role="presentation" onClick={onClose}>
-      <div
-        className="modal-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="user-editor-title"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-toolbar">
-          <h2 id="user-editor-title" className="modal-title">
-            {title}
-          </h2>
-          <button type="button" className="btn btn--secondary btn--sm" onClick={onClose}>
-            Cancel
-          </button>
-        </div>
-        <form className="modal-body" onSubmit={handleSubmit} noValidate>
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="sm:max-w-lg" onPointerDownOutside={onClose}>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <form className="space-y-4" onSubmit={handleSubmit} noValidate>
           {isEdit && editingUser ? (
-            <p className="muted" style={{ margin: "0 0 12px" }}>
-              User ID: <span className="td-mono">{editingUser.id}</span>
+            <p className="text-sm text-muted-foreground">
+              User ID: <span className="font-mono text-xs">{editingUser.id}</span>
             </p>
           ) : (
-            <p className="muted" style={{ margin: "0 0 12px" }}>
+            <p className="text-sm text-muted-foreground">
               Executive or Designer login. Share the password out-of-band — it is not emailed from
               here.
             </p>
           )}
           {submitError ? (
-            <div className="flash flash--error" role="alert">
-              {submitError}
-            </div>
+            <Alert variant="destructive" role="alert">
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
           ) : null}
-          <div className="field-grid field-grid--2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Username" required error={fieldErrors.username}>
-              <input
+              <Input
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
                   if (fieldErrors.username) setFieldErrors((p) => ({ ...p, username: "" }));
                 }}
                 readOnly={isAdmin}
-                className={isAdmin ? "input-readonly" : undefined}
+                className={cn(isAdmin && "opacity-70")}
                 autoComplete="off"
                 aria-invalid={!!fieldErrors.username}
               />
             </FormField>
             <FormField label="Email" error={fieldErrors.email}>
-              <input
+              <Input
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -175,7 +176,7 @@ export function AdminUserEditorModal({
           </div>
           {!isEdit ? (
             <FormField label="Temporary password" required error={fieldErrors.password}>
-              <input
+              <Input
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -187,21 +188,21 @@ export function AdminUserEditorModal({
               />
             </FormField>
           ) : null}
-          <label>
-            Role
+          <FormField label="Role">
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
               disabled={isAdmin}
+              className={selectClass}
             >
               <option>EXECUTIVE</option>
               <option>DESIGNER</option>
               {isAdmin ? <option>ADMIN</option> : null}
             </select>
-          </label>
+          </FormField>
           {isEdit ? (
             <>
-              <label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
                 <input
                   type="checkbox"
                   checked={isActive}
@@ -209,35 +210,40 @@ export function AdminUserEditorModal({
                 />
                 Account active
               </label>
-              <p className="muted" style={{ margin: "0 0 12px" }}>
+              <p className="text-sm text-muted-foreground">
                 Inactive users cannot log in; nothing is deleted.
               </p>
-              <div className="form-actions" style={{ marginBottom: 12 }}>
-                <button
+              <div className="flex flex-wrap gap-2">
+                <Button
                   type="button"
-                  className="btn btn--secondary"
+                  variant="secondary"
                   onClick={() => editingUser && onOpenChangePassword(editingUser)}
                 >
                   Change password
-                </button>
+                </Button>
                 {canDelete && editingUser ? (
-                  <button
+                  <Button
                     type="button"
-                    className="btn btn--secondary"
+                    variant="secondary"
                     onClick={() => onRequestDelete(editingUser)}
                     disabled={saving}
                   >
                     Delete user
-                  </button>
+                  </Button>
                 ) : null}
               </div>
             </>
           ) : null}
-          <button type="submit" className="btn btn--primary" disabled={saving}>
-            {saving ? "Saving…" : isEdit ? "Save changes" : "Create user"}
-          </button>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving}>
+              {saving ? "Saving…" : isEdit ? "Save changes" : "Create user"}
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

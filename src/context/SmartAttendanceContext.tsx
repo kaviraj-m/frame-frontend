@@ -1,8 +1,8 @@
 import { createContext, useContext, type ReactNode } from "react";
-import { useSmartAttendance, type SmartAttendanceState } from "../hooks/useSmartAttendance";
-import type { AttendanceApiPrefix } from "../lib/attendanceTypes";
+import { useAttendanceTracker, type AttendanceTrackerState } from "@/hooks/useAttendanceTracker";
+import type { AttendanceApiPrefix } from "@/lib/attendanceTypes";
 
-const SmartAttendanceContext = createContext<SmartAttendanceState | null>(null);
+const AttendanceContext = createContext<AttendanceTrackerState | null>(null);
 
 export function SmartAttendanceProvider({
   apiPrefix,
@@ -11,12 +11,12 @@ export function SmartAttendanceProvider({
   apiPrefix: AttendanceApiPrefix;
   children: ReactNode;
 }) {
-  const value = useSmartAttendance(apiPrefix);
-  return <SmartAttendanceContext.Provider value={value}>{children}</SmartAttendanceContext.Provider>;
+  const value = useAttendanceTracker(apiPrefix);
+  return <AttendanceContext.Provider value={value}>{children}</AttendanceContext.Provider>;
 }
 
-export function useSmartAttendanceContext(): SmartAttendanceState {
-  const ctx = useContext(SmartAttendanceContext);
+export function useSmartAttendanceContext(): AttendanceTrackerState {
+  const ctx = useContext(AttendanceContext);
   if (!ctx) {
     throw new Error("useSmartAttendanceContext must be used within SmartAttendanceProvider");
   }

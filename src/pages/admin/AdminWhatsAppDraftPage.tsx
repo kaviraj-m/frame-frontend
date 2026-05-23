@@ -1,40 +1,45 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
-import { validateRequired } from "../../lib/fieldValidation";
-import { WHATSAPP_DRAFT_PLACEHOLDERS, previewWhatsAppDraftBody } from "../../lib/whatsappDraft";
-import { FormField } from "../../components/ui/FormField";
-import { PageHeader } from "../../components/ui/PageHeader";
+import { api } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
+import { validateRequired } from "@/lib/fieldValidation";
+import { WHATSAPP_DRAFT_PLACEHOLDERS, previewWhatsAppDraftBody } from "@/lib/whatsappDraft";
+import { FormField } from "@/components/ui/FormField";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { BRAND_WHATSAPP_SIGNOFF } from "@/lib/brand";
+import { Card } from "@/components/common/Card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type DraftConfig = { body: string; isActive: boolean };
 
 const QUERY_DEFAULT_BODY = `Hi {customerName},
 
-Thank you for your enquiry (Ref: {queryId}).
+Thank you for confirming your order (Ref: {orderId}).
 
-— Frame team
+${BRAND_WHATSAPP_SIGNOFF}
 {date} at {time}`;
 
 const DESIGN_SHARED_DEFAULT_BODY = `Hi {customerName},
 
 Your design preview for order {orderId} is ready. Please review and share your feedback.
 
-— Frame team
+${BRAND_WHATSAPP_SIGNOFF}
 {date} at {time}`;
 
 const DISPATCH_DEFAULT_BODY = `Hi {customerName},
 
 Your order {orderId} has been dispatched. Tracking ID: {trackingId}
 
-— Frame team
+${BRAND_WHATSAPP_SIGNOFF}
 {date} at {time}`;
 
 const PRINT_DEFAULT_BODY = `Hi {customerName},
 
 Update on your order {orderId}: print status is {printStage} (order status: {status}).
 
-— Frame team
+${BRAND_WHATSAPP_SIGNOFF}
 {date} at {time}`;
 
 type DraftSectionProps = {
@@ -113,49 +118,48 @@ function WhatsAppDraftSection({
   const preview = previewWhatsAppDraftBody(body);
 
   return (
-    <form className="card" onSubmit={saveDraft} noValidate>
-      <h3>{title}</h3>
-      <p className="muted small">{description}</p>
-      {msg && <DraftSuccessFlash msg={msg} />}
-      <FormField label="Message body" required error={bodyError}>
-        <textarea
-          className="textarea"
-          rows={8}
-          value={body}
-          onChange={(e) => {
-            setBody(e.target.value);
-            if (bodyError) setBodyError("");
-          }}
-          disabled={!loaded || saving}
-          placeholder={defaultBody}
-          aria-invalid={!!bodyError}
-        />
-      </FormField>
-      <label>
-        <input
-          type="checkbox"
-          checked={isActive}
-          onChange={(e) => setIsActive(e.target.checked)}
-          disabled={!loaded || saving}
-        />
-        {activeLabel}
-      </label>
-      <div className="card card--muted">
-        <h4>Preview (sample data, live date/time)</h4>
-        <pre className="whatsapp-draft-preview">{preview}</pre>
-      </div>
-      <button type="submit" className="btn btn--primary" disabled={!loaded || saving}>
-        {saving ? "Saving…" : "Save draft"}
-      </button>
-    </form>
-  );
-}
-
-function DraftSuccessFlash({ msg }: { msg: string }) {
-  return (
-    <div className="flash flash--success" role="status">
-      {msg}
-    </div>
+    <Card>
+      <form className="space-y-4" onSubmit={saveDraft} noValidate>
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <p className="text-xs text-muted-foreground">{description}</p>
+        {msg && (
+          <Alert variant="success" role="status">
+            <AlertDescription>{msg}</AlertDescription>
+          </Alert>
+        )}
+        <FormField label="Message body" required error={bodyError}>
+          <Textarea
+            rows={8}
+            value={body}
+            onChange={(e) => {
+              setBody(e.target.value);
+              if (bodyError) setBodyError("");
+            }}
+            disabled={!loaded || saving}
+            placeholder={defaultBody}
+            aria-invalid={!!bodyError}
+          />
+        </FormField>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            disabled={!loaded || saving}
+          />
+          {activeLabel}
+        </label>
+        <Card muted>
+          <h4 className="text-sm font-semibold mb-2">Preview (sample data, live date/time)</h4>
+          <pre className="text-xs whitespace-pre-wrap font-mono bg-background/50 p-3 rounded-md border border-border">
+            {preview}
+          </pre>
+        </Card>
+        <Button type="submit" disabled={!loaded || saving}>
+          {saving ? "Saving…" : "Save draft"}
+        </Button>
+      </form>
+    </Card>
   );
 }
 
@@ -163,8 +167,8 @@ export function AdminWhatsAppDraftPage() {
   const [err, setErr] = useState("");
 
   return (
-    <div className="page-stack">
-      <nav className="breadcrumb">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
+      <nav className="breadcrumb text-sm">
         <Link to="/admin/users">Admin</Link>
         <span className="breadcrumb-sep">/</span>
         <span>WhatsApp draft</span>
@@ -174,24 +178,28 @@ export function AdminWhatsAppDraftPage() {
         title="WhatsApp message drafts"
         description="Pre-filled WhatsApp messages for enquiries, design preview, print updates, and dispatch tracking. Date and time are filled when someone opens WhatsApp."
       />
-      {err && <div className="flash flash--error" role="alert">{err}</div>}
+      {err && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{err}</AlertDescription>
+        </Alert>
+      )}
 
-      <div className="card card--muted">
-        <h4>Placeholders</h4>
-        <ul className="muted small" style={{ margin: 0, paddingLeft: "1.2rem" }}>
+      <Card muted>
+        <h4 className="text-sm font-semibold mb-2">Placeholders</h4>
+        <ul className="text-xs text-muted-foreground list-disc pl-5 space-y-1">
           {WHATSAPP_DRAFT_PLACEHOLDERS.map((p) => (
             <li key={p.token}>
-              <code>{p.token}</code> — {p.desc}
+              <code className="font-mono">{p.token}</code> — {p.desc}
             </li>
           ))}
         </ul>
-      </div>
+      </Card>
 
       <WhatsAppDraftSection
-        title="Executive enquiry draft"
-        description="Used when executives tap WhatsApp on a customer query."
-        activeLabel="Draft active (executives can open WhatsApp with this message)"
-        savedMessage="Enquiry draft saved. Executives will see this message when they tap WhatsApp on a query."
+        title="Executive order confirmed draft"
+        description="Used when executives tap WhatsApp on an order with status ORDER_CONFIRMED. {orderId} is the order reference."
+        activeLabel="Draft active (executives can open WhatsApp with this message on confirmed orders)"
+        savedMessage="Order-confirmed draft saved. Executives will see this message when they tap WhatsApp on a confirmed order."
         defaultBody={QUERY_DEFAULT_BODY}
         apiPath={apiPaths.adminWhatsAppDraft}
         onError={setErr}

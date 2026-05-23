@@ -12,6 +12,12 @@ const navSections: ShellNavSection[] = [
     items: [{ to: "/admin/pricing", label: "Pricing", end: true }],
   },
   {
+    heading: "Settings",
+    items: [
+      { to: "/admin/settings/executive-features", label: "Executive features", end: true },
+    ],
+  },
+  {
     heading: "Customer comms",
     items: [{ to: "/admin/whatsapp-draft", label: "WhatsApp draft", end: true }],
   },
@@ -22,6 +28,7 @@ const navSections: ShellNavSection[] = [
       { to: "/admin/orders/production", label: "Production & dispatch", end: true },
       { to: "/admin/orders/patch", label: "Update order", end: true },
       { to: "/admin/reports/attendance", label: "Attendance report", end: true },
+      { to: "/admin/audit-log", label: "Audit log", end: true },
     ],
   },
 ];

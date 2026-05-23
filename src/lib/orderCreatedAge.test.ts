@@ -29,24 +29,28 @@ describe("orderCreatedAge", () => {
   it("maps tiers to Tailwind full-row classes", () => {
     const today = orderRowAgeClass("2026-05-20T08:00:00.000Z", "IN_DESIGN", NOW);
     expect(orderRowAgeTier("2026-05-20T08:00:00.000Z", "IN_DESIGN", NOW)).toBe("today");
-    expect(today).toContain("bg-emerald-950");
-    expect(today).toContain("text-emerald-100");
+    expect(today).toContain("bg-green-400");
+    expect(today).toContain("text-white");
+    expect(today).toContain("text-green-100");
+    expect(today).toContain("status-pill");
+    expect(today).toContain("[&>td]");
     expect(today).toContain("text-inherit");
 
     const yesterday = orderRowAgeClass("2026-05-19T10:00:00.000Z", "IN_PRINT", NOW);
     expect(orderRowAgeTier("2026-05-19T10:00:00.000Z", "IN_PRINT", NOW)).toBe("day2");
-    expect(yesterday).toContain("bg-yellow-950");
-    expect(yesterday).toContain("text-yellow-100");
+    expect(yesterday).toContain("bg-yellow-300");
+    expect(yesterday).toContain("text-yellow-950");
+    expect(yesterday).toContain("text-yellow-900");
 
     const twoDays = orderRowAgeClass("2026-05-18T10:00:00.000Z", "ORDER_CONFIRMED", NOW);
     expect(orderRowAgeTier("2026-05-18T10:00:00.000Z", "ORDER_CONFIRMED", NOW)).toBe("day3");
-    expect(twoDays).toContain("bg-amber-950");
-    expect(twoDays).toContain("text-amber-100");
+    expect(twoDays).toContain("bg-orange-300");
+    expect(twoDays).toContain("text-orange-950");
 
     const old = orderRowAgeClass("2026-05-15T10:00:00.000Z", "IN_DESIGN", NOW);
     expect(orderRowAgeTier("2026-05-15T10:00:00.000Z", "IN_DESIGN", NOW)).toBe("old");
-    expect(old).toContain("bg-rose-950");
-    expect(old).toContain("text-rose-100");
+    expect(old).toContain("bg-red-400");
+    expect(old).toContain("text-white");
   });
 
   it("returns normal for missing or invalid createdAt", () => {
@@ -56,7 +60,8 @@ describe("orderCreatedAge", () => {
 
   it("merges extra row classes and selection ring on age rows", () => {
     const row = orderRowClassName("2026-05-20T08:00:00.000Z", "IN_DESIGN", "is-selected", NOW);
-    expect(row).toContain("bg-emerald");
+    expect(row).toContain("bg-green-400");
+    expect(row).not.toContain("hover:");
     expect(row).toContain("is-selected");
     expect(row).toContain("shadow-[inset");
   });

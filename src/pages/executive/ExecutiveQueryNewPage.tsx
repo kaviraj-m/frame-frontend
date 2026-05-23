@@ -1,16 +1,21 @@
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FormField } from "../../components/ui/FormField";
-import { api } from "../../lib/api";
-import { apiPaths } from "../../lib/apiPaths";
+import { FormField } from "@/components/ui/FormField";
+import { api } from "@/lib/api";
+import { apiPaths } from "@/lib/apiPaths";
 import {
   firstError,
   phoneDigits,
   validateEmailOptional,
   validatePhone10,
   validateRequired,
-} from "../../lib/fieldValidation";
-import { PageHeader } from "../../components/ui/PageHeader";
+} from "@/lib/fieldValidation";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/common/Card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function ExecutiveQueryNewPage() {
   const navigate = useNavigate();
@@ -66,8 +71,8 @@ export function ExecutiveQueryNewPage() {
   }
 
   return (
-    <div className="page-stack">
-      <nav className="breadcrumb">
+    <div className="flex flex-col gap-6 min-w-0 w-full">
+      <nav className="breadcrumb text-sm">
         <Link to="/executive/queries">Queries</Link>
         <span className="breadcrumb-sep">/</span>
         <span>New query</span>
@@ -77,61 +82,71 @@ export function ExecutiveQueryNewPage() {
         title="Log a query"
         description="Name, phone, email (optional), and a short note. You will get a stable ID to track until they pay and confirm."
       />
-      {status && <div className="flash flash--success" role="status">{status}</div>}
-      {error && <div className="flash flash--error" role="alert">{error}</div>}
-      <form className="card" onSubmit={createQuery} noValidate>
-        <div className="field-grid field-grid--3">
-          <FormField label="Customer name" required error={fieldErrors.name}>
-            <input
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: "" }));
-              }}
-              placeholder="Username or display name"
-              aria-invalid={!!fieldErrors.name}
+      {status && (
+        <Alert variant="success" role="status">
+          <AlertDescription>{status}</AlertDescription>
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="destructive" role="alert">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      <Card>
+        <form className="space-y-4" onSubmit={createQuery} noValidate>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <FormField label="Customer name" required error={fieldErrors.name}>
+              <Input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (fieldErrors.name) setFieldErrors((prev) => ({ ...prev, name: "" }));
+                }}
+                placeholder="Username or display name"
+                aria-invalid={!!fieldErrors.name}
+              />
+            </FormField>
+            <FormField label="Phone" required error={fieldErrors.phone}>
+              <Input
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
+                value={phone}
+                onChange={(e) => onPhoneChange(e.target.value)}
+                placeholder="10-digit mobile"
+                aria-invalid={!!fieldErrors.phone}
+              />
+            </FormField>
+            <FormField label="Email" error={fieldErrors.email} hint="Optional">
+              <Input
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: "" }));
+                }}
+                placeholder="name@example.com"
+                aria-invalid={!!fieldErrors.email}
+              />
+            </FormField>
+          </div>
+          <FormField label="Initial remarks">
+            <Textarea
+              rows={4}
+              value={remarks}
+              onChange={(e) => setRemarks(e.target.value)}
+              placeholder="Requirement notes, source, next step…"
             />
           </FormField>
-          <FormField label="Phone" required error={fieldErrors.phone}>
-            <input
-              type="tel"
-              inputMode="numeric"
-              maxLength={10}
-              value={phone}
-              onChange={(e) => onPhoneChange(e.target.value)}
-              placeholder="10-digit mobile"
-              aria-invalid={!!fieldErrors.phone}
-            />
-          </FormField>
-          <FormField label="Email" error={fieldErrors.email} hint="Optional">
-            <input
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: "" }));
-              }}
-              placeholder="name@example.com"
-              aria-invalid={!!fieldErrors.email}
-            />
-          </FormField>
-        </div>
-        <label>
-          Initial remarks
-          <textarea
-            className="textarea"
-            rows={4}
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-            placeholder="Requirement notes, source, next step…"
-          />
-        </label>
-        <div className="form-actions">
-          <button type="submit" className="btn btn--primary">Create query</button>
-          <Link to="/executive/queries" className="secondary-link">Cancel</Link>
-        </div>
-      </form>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button type="submit">Create query</Button>
+            <Link to="/executive/queries" className="text-sm text-muted-foreground hover:text-foreground">
+              Cancel
+            </Link>
+          </div>
+        </form>
+      </Card>
     </div>
   );
 }

@@ -41,8 +41,8 @@ export type OrderRowAgeTier = "" | "today" | "day2" | "day3" | "old";
  * Age tier from created date (IST calendar days):
  * - today (0): green
  * - day2 (1): yellow — yesterday
- * - day3 (2): amber — 2 days ago
- * - old (3+): red
+ * - day3 (2): orange — Delayed (2 calendar days old)
+ * - old (3+): red — Overdue (3+ calendar days old)
  */
 export function orderRowAgeTier(
   createdAt: string | undefined,
@@ -58,54 +58,133 @@ export function orderRowAgeTier(
   return "old";
 }
 
-/** Keep status pills / action buttons on their own colors. */
+/** Exclude status pills, action buttons, and avatars from row text inherit. */
 const ROW_TEXT_EXCLUDE =
-  ":not(.status-pill):not(.status-pill_*):not(.btn):not(.btn_*):not(.pill):not(.pill_*):not(.data-board__avatar)";
+  ":not(button):not(.status-pill):not(.status-pill_*):not(.btn):not(.btn_*):not(.pill):not(.pill_*):not(.data-board__avatar)";
 
-/** Force every cell label to use the row tier text color (overrides data-table / data-board CSS). */
-const ORDER_ROW_TEXT_INHERIT = cn(
-  `[&_td_*${ROW_TEXT_EXCLUDE}]:!text-inherit`,
-  "[&_td_a:not(.btn):not(.small-btn)]:!text-inherit",
-  "[&_.td-order-id]:!text-inherit",
-  "[&_.td-muted-id]:!text-inherit",
-  "[&_.td-strong]:!text-inherit",
-  "[&_.td-mono]:!text-inherit",
-  "[&_.date-cell]:!text-inherit",
-  "[&_.remark-clip]:!text-inherit",
-  "[&_.small]:!text-inherit",
-  "[&_.muted]:!text-inherit",
-  "[&_.data-board__cust-name]:!text-inherit",
-  "[&_.data-board__cust-email]:!text-inherit",
-  "[&_.data-board__dt-main]:!text-inherit",
-  "[&_.data-board__dt-sub]:!text-inherit",
-  "[&_.data-board__remark]:!text-inherit",
+/** Row text + muted variants; overrides `text-muted-foreground` on cells and nested spans. */
+const ORDER_ROW_TEXT_BASE = cn(
+  `[&>td_*${ROW_TEXT_EXCLUDE}]:!text-inherit`,
+  "[&>td_.td-order-id]:!text-inherit",
+  "[&>td_.td-muted-id]:!text-inherit",
+  "[&>td_.td-strong]:!text-inherit",
+  "[&>td_.td-mono]:!text-inherit",
+  "[&>td_.date-cell]:!text-inherit",
+  "[&>td_.remark-clip]:!text-inherit",
+  "[&>td_.small]:!text-inherit",
+  "[&>td_.muted]:!text-inherit",
 );
 
-/** Full-row Tailwind — background + text on every column for all role order tables. */
+const ORDER_ROW_TEXT_TODAY = cn(
+  "[&>td]:!text-white",
+  "[&>td.text-muted-foreground]:!text-green-100",
+  "[&>td_.text-muted-foreground]:!text-green-100",
+  "[&>td_.text-foreground]:!text-white",
+  "[&>td_a:not(.btn):not(.small-btn):not(.inline-flex)]:!text-white",
+  ORDER_ROW_TEXT_BASE,
+);
+
+const ORDER_ROW_TEXT_YESTERDAY = cn(
+  "[&>td]:!text-yellow-950",
+  "[&>td.text-muted-foreground]:!text-yellow-900",
+  "[&>td_.text-muted-foreground]:!text-yellow-900",
+  "[&>td_.text-foreground]:!text-yellow-950",
+  "[&>td_a:not(.btn):not(.small-btn):not(.inline-flex)]:!text-yellow-950",
+  ORDER_ROW_TEXT_BASE,
+);
+
+const ORDER_ROW_TEXT_DAY2 = cn(
+  "[&>td]:!text-orange-950",
+  "[&>td.text-muted-foreground]:!text-orange-900",
+  "[&>td_.text-muted-foreground]:!text-orange-900",
+  "[&>td_.text-foreground]:!text-orange-950",
+  "[&>td_a:not(.btn):not(.small-btn):not(.inline-flex)]:!text-orange-950",
+  ORDER_ROW_TEXT_BASE,
+);
+
+const ORDER_ROW_TEXT_OLD = cn(
+  "[&>td]:!text-white",
+  "[&>td.text-muted-foreground]:!text-red-100",
+  "[&>td_.text-muted-foreground]:!text-red-100",
+  "[&>td_.text-foreground]:!text-white",
+  "[&>td_a:not(.btn):not(.small-btn):not(.inline-flex)]:!text-white",
+  ORDER_ROW_TEXT_BASE,
+);
+
+/** Status badge on age rows — darker pill in the same hue as the row. */
+const ORDER_ROW_STATUS_TODAY = cn(
+  "[&>td_.status-pill]:!border-green-900 [&>td_.status-pill]:!bg-green-900 [&>td_.status-pill]:!text-green-50",
+);
+const ORDER_ROW_STATUS_YESTERDAY = cn(
+  "[&>td_.status-pill]:!border-yellow-900 [&>td_.status-pill]:!bg-yellow-900 [&>td_.status-pill]:!text-yellow-50",
+);
+const ORDER_ROW_STATUS_DAY2 = cn(
+  "[&>td_.status-pill]:!border-orange-900 [&>td_.status-pill]:!bg-orange-900 [&>td_.status-pill]:!text-orange-50",
+);
+const ORDER_ROW_STATUS_OLD = cn(
+  "[&>td_.status-pill]:!border-red-900 [&>td_.status-pill]:!bg-red-900 [&>td_.status-pill]:!text-red-50",
+);
+
+/** Outline action icons — dark button, white icon (view `button` + edit `a` link-as-button). */
+const ORDER_ROW_ACTION_BASE = "[&>td_button_svg]:!text-white [&>td_a.inline-flex_svg]:!text-white";
+
+const ORDER_ROW_ACTION_TODAY = cn(
+  "[&>td_button]:!border-green-800 [&>td_button]:!bg-green-950 [&>td_button]:!text-white",
+  "[&>td_a.inline-flex]:!border-green-800 [&>td_a.inline-flex]:!bg-green-950 [&>td_a.inline-flex]:!text-white",
+  "[&>td_button:hover]:!bg-green-900 [&>td_a.inline-flex:hover]:!bg-green-900",
+  ORDER_ROW_ACTION_BASE,
+);
+const ORDER_ROW_ACTION_YESTERDAY = cn(
+  "[&>td_button]:!border-yellow-900 [&>td_button]:!bg-yellow-950 [&>td_button]:!text-white",
+  "[&>td_a.inline-flex]:!border-yellow-900 [&>td_a.inline-flex]:!bg-yellow-950 [&>td_a.inline-flex]:!text-white",
+  "[&>td_button:hover]:!bg-yellow-900 [&>td_a.inline-flex:hover]:!bg-yellow-900",
+  ORDER_ROW_ACTION_BASE,
+);
+const ORDER_ROW_ACTION_DAY2 = cn(
+  "[&>td_button]:!border-orange-900 [&>td_button]:!bg-orange-950 [&>td_button]:!text-white",
+  "[&>td_a.inline-flex]:!border-orange-900 [&>td_a.inline-flex]:!bg-orange-950 [&>td_a.inline-flex]:!text-white",
+  "[&>td_button:hover]:!bg-orange-900 [&>td_a.inline-flex:hover]:!bg-orange-900",
+  ORDER_ROW_ACTION_BASE,
+);
+const ORDER_ROW_ACTION_OLD = cn(
+  "[&>td_button]:!border-red-900 [&>td_button]:!bg-red-950 [&>td_button]:!text-white",
+  "[&>td_a.inline-flex]:!border-red-900 [&>td_a.inline-flex]:!bg-red-950 [&>td_a.inline-flex]:!text-white",
+  "[&>td_button:hover]:!bg-red-900 [&>td_a.inline-flex:hover]:!bg-red-900",
+  ORDER_ROW_ACTION_BASE,
+);
+
+/**
+ * Body cells only (`> td`) — never `th` / table header columns.
+ * Brighter solids, no hover darkening.
+ */
 const ORDER_ROW_TIER_TW: Record<Exclude<OrderRowAgeTier, "">, string> = {
   today: cn(
-    "[&_td]:!border-b [&_td]:!border-emerald-900/40",
-    "[&_td]:!bg-emerald-950/75 [&_td]:!text-emerald-100",
-    "hover:[&_td]:!bg-emerald-900/80 hover:[&_td]:!text-emerald-50",
-    ORDER_ROW_TEXT_INHERIT,
+    "[&>td]:!border-b [&>td]:!border-green-200",
+    "[&>td]:!bg-green-400",
+    ORDER_ROW_TEXT_TODAY,
+    ORDER_ROW_STATUS_TODAY,
+    ORDER_ROW_ACTION_TODAY,
   ),
   day2: cn(
-    "[&_td]:!border-b [&_td]:!border-yellow-900/40",
-    "[&_td]:!bg-yellow-950/75 [&_td]:!text-yellow-100",
-    "hover:[&_td]:!bg-yellow-900/80 hover:[&_td]:!text-yellow-50",
-    ORDER_ROW_TEXT_INHERIT,
+    "[&>td]:!border-b [&>td]:!border-yellow-200",
+    "[&>td]:!bg-yellow-300",
+    ORDER_ROW_TEXT_YESTERDAY,
+    ORDER_ROW_STATUS_YESTERDAY,
+    ORDER_ROW_ACTION_YESTERDAY,
   ),
   day3: cn(
-    "[&_td]:!border-b [&_td]:!border-amber-900/40",
-    "[&_td]:!bg-amber-950/80 [&_td]:!text-amber-100",
-    "hover:[&_td]:!bg-amber-900/85 hover:[&_td]:!text-amber-50",
-    ORDER_ROW_TEXT_INHERIT,
+    "[&>td]:!border-b [&>td]:!border-orange-200",
+    "[&>td]:!bg-orange-300",
+    ORDER_ROW_TEXT_DAY2,
+    ORDER_ROW_STATUS_DAY2,
+    ORDER_ROW_ACTION_DAY2,
   ),
   old: cn(
-    "[&_td]:!border-b [&_td]:!border-rose-900/40",
-    "[&_td]:!bg-rose-950/75 [&_td]:!text-rose-100",
-    "hover:[&_td]:!bg-rose-900/80 hover:[&_td]:!text-rose-50",
-    ORDER_ROW_TEXT_INHERIT,
+    "[&>td]:!border-b [&>td]:!border-red-200",
+    "[&>td]:!bg-red-400",
+    ORDER_ROW_TEXT_OLD,
+    ORDER_ROW_STATUS_OLD,
+    ORDER_ROW_ACTION_OLD,
   ),
 };
 

@@ -1,6 +1,13 @@
 import { ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { clearAuthStorage } from "../../lib/api";
+import { BrandMark } from "@/components/brand/BrandMark";
+import { ThemePicker } from "@/components/theme/ThemePicker";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
+import { clearAuthStorage } from "@/lib/api";
+import { endAttendanceOnLogout } from "@/hooks/useAttendanceTracker";
+import type { AttendanceApiPrefix } from "@/lib/attendanceTypes";
 
 export type ShellNavItem = { to: string; label: string; end?: boolean };
 export type ShellNavSection = { heading: string; items: ShellNavItem[] };
@@ -12,16 +19,16 @@ export function DashboardShell({
   navSections,
   navItems = [],
   hideTopbar = false,
+  attendanceApiPrefix,
 }: {
   title: string;
   subtitle?: string;
-  /** Hide the title strip above content for dense table-first pages. */
   hideTopbar?: boolean;
   children: ReactNode;
-  /** Grouped navigation (preferred). */
   navSections?: ShellNavSection[];
-  /** Flat list — wrapped in a single "Menu" section if `navSections` is omitted. */
   navItems?: ShellNavItem[];
+  /** Ends open attendance session on logout (executive/designer). */
+  attendanceApiPrefix?: AttendanceApiPrefix;
 }) {
   const navigate = useNavigate();
   const username = typeof localStorage !== "undefined" ? localStorage.getItem("username") : null;
@@ -34,40 +41,48 @@ export function DashboardShell({
         ? [{ heading: "Menu", items: navItems }]
         : [];
 
-  function logout() {
+  async function logout() {
+    if (attendanceApiPrefix) {
+      await endAttendanceOnLogout(attendanceApiPrefix);
+    }
     clearAuthStorage();
     navigate("/login");
   }
 
   return (
-    <div className="app-shell">
-      <aside className="shell-sidebar">
-        <div className="shell-brand">
-          <div className="shell-brand__mark">K</div>
-          <div className="shell-brand__text">
-            <span className="shell-brand__name">KaspX</span>
-            <span className="shell-brand__tag">Order management</span>
-          </div>
+    <div className="flex min-h-screen w-full max-w-[1920px] mx-auto flex-col lg:h-screen lg:flex-row lg:overflow-hidden">
+      <aside className="flex shrink-0 flex-col border-b border-sidebar-border bg-sidebar px-4 py-5 lg:h-full lg:w-[260px] lg:overflow-y-auto lg:border-b-0 lg:border-r">
+        <div className="mb-4 border-b border-sidebar-border pb-4">
+          <BrandMark variant="sidebar" />
         </div>
 
-        <div className="shell-user">
-          <div className="shell-user__meta">
-            <span className="shell-user__name">{username || "User"}</span>
-            {role && <span className="shell-role">{role}</span>}
-          </div>
+        <div className="mb-4 px-2">
+          <p className="text-sm font-medium text-sidebar-foreground">{username || "User"}</p>
+          {role ? (
+            <span className="mt-2 inline-block rounded border border-primary/35 bg-primary/10 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-primary">
+              {role}
+            </span>
+          ) : null}
         </div>
 
-        <nav className="shell-nav" aria-label="Primary">
+        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto lg:flex-row lg:flex-wrap lg:gap-2" aria-label="Primary">
           {sections.map((section) => (
-            <div key={section.heading} className="shell-nav__group">
-              <div className="shell-nav__heading">{section.heading}</div>
-              <ul className="shell-nav__list">
+            <div key={section.heading} className="min-w-[140px] flex-1">
+              <p className="mb-1 px-2 text-[0.65rem] font-bold uppercase tracking-widest text-muted-foreground">
+                {section.heading}
+              </p>
+              <ul className="flex flex-col gap-0.5 lg:flex-row lg:flex-wrap">
                 {section.items.map((item) => (
-                  <li key={item.to}>
+                  <li key={item.to} className="lg:flex-1 lg:min-w-[120px]">
                     <NavLink
                       to={item.to}
                       end={item.end ?? false}
-                      className={({ isActive }) => `shell-nav__link${isActive ? " is-active" : ""}`}
+                      className={({ isActive }) =>
+                        cn(
+                          "block rounded-md px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-accent/50",
+                          isActive && "bg-accent/40 font-medium text-accent-foreground",
+                        )
+                      }
                     >
                       {item.label}
                     </NavLink>
@@ -78,23 +93,27 @@ export function DashboardShell({
           ))}
         </nav>
 
-        <div className="shell-footer">
-          <button type="button" className="btn btn--ghost btn--block" onClick={logout}>
+        <div className="mt-auto space-y-3 pt-4">
+          <Separator />
+          <Button type="button" variant="ghost" className="w-full" onClick={logout}>
             Sign out
-          </button>
+          </Button>
         </div>
       </aside>
 
-      <div className={`shell-main${hideTopbar ? " shell-main--no-topbar" : ""}`}>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex shrink-0 items-center justify-end border-b border-border px-4 py-2 sm:px-6">
+          <ThemePicker />
+        </div>
         {!hideTopbar ? (
-          <header className="shell-topbar">
-            <div>
-              <h1 className="shell-topbar__title">{title}</h1>
-              <p className="shell-topbar__subtitle">{subtitle}</p>
-            </div>
+          <header className="shrink-0 border-b border-border px-6 py-5">
+            <h1 className="font-[family-name:var(--font-display)] text-2xl font-semibold tracking-tight text-foreground">
+              {title}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </header>
         ) : null}
-        <div className="shell-content">{children}</div>
+        <div className="min-h-0 min-w-0 flex-1 overflow-auto p-6">{children}</div>
       </div>
     </div>
   );
