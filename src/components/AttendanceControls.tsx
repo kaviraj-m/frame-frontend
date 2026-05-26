@@ -23,18 +23,21 @@ export function AttendanceControls() {
       <CardHeader className="pb-2">
         <h3 className="text-base font-semibold">Break controls</h3>
         <p className="text-sm text-muted-foreground">
-          Present time is tracked while you stay on this site. Leaving the tab or another app for 10
-          seconds starts an automatic break. Return to resume present time.
+          <strong>Present</strong> — working on this site with the tab focused (app pings every 5
+          minutes; if pings stop, the server ends your session as offline).{" "}
+          <strong>Idle</strong> — recorded automatically when you switch to another tab or app (saved on
+          your attendance timeline). <strong>Break</strong> — manual rest; use Break done
+          when you return.
         </p>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        {status === "break" || status === "away_pending" ? (
+        {status === "break" ? (
           <Button type="button" variant="secondary" size="sm" onClick={() => void endBreak()}>
-            End break
+            Break done
           </Button>
         ) : (
           <Button type="button" variant="secondary" size="sm" onClick={() => void startBreak()}>
-            Start manual break
+            Break
           </Button>
         )}
         <Button type="button" variant="outline" size="sm" onClick={() => void endDay()}>

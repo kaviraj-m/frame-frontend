@@ -100,6 +100,7 @@ export function AdminOrderPatchPage() {
               >
                 <option>DESIGN_APPROVED</option>
                 <option>IN_PRINT</option>
+                <option>FRAME_READY</option>
                 <option>READY_FOR_COURIER</option>
                 <option>DISPATCHED</option>
                 <option>PARTIALLY_PAID</option>

@@ -8,6 +8,7 @@ import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
 import { api } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
 import { formatShortDate, formatTableDateTime } from "@/lib/formatDisplay";
+import { AdminOrderDetailModal } from "@/components/admin/AdminOrderDetailModal";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,6 +203,7 @@ export function AdminOrdersAllPage() {
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrderRow | null>(null);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setError("");
@@ -398,6 +400,22 @@ export function AdminOrdersAllPage() {
                             </svg>
                           </Button>
                           <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            title="Order details"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDetailOrderId(row.orderId);
+                            }}
+                            aria-label="Order details"
+                          >
+                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                              <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                            </svg>
+                          </Button>
+                          <Button
                             asChild
                             variant="outline"
                             size="icon"
@@ -466,6 +484,12 @@ export function AdminOrdersAllPage() {
           <UserPanel order={selectedOrder} allOrders={sortedOrders} onClose={() => setSelectedOrder(null)} />
         ) : null}
       </div>
+
+      <AdminOrderDetailModal
+        orderId={detailOrderId ?? ""}
+        open={!!detailOrderId}
+        onClose={() => setDetailOrderId(null)}
+      />
     </div>
   );
 }

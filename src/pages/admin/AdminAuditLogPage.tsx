@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
-import { formatMoney, formatTableDateTime } from "@/lib/formatDisplay";
+import { formatTableDateTime } from "@/lib/formatDisplay";
 import {
   auditDateRangeValid,
   fetchAllAuditLogs,
@@ -22,125 +22,17 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
-
-type AuditChange = { field: string; label: string; old: string; new: string };
-
-const AUDIT_ACTION_LABELS: Record<string, { label: string; showChanges?: boolean }> = {
-  "query.created": { label: "Query created" },
-  "query.remarks_updated": { label: "Remark added" },
-  "order.confirmed": { label: "Order confirmed" },
-  "order.asset_uploaded": { label: "Asset uploaded" },
-  "order.asset_deleted": { label: "Asset deleted" },
-  "order.design_taken": { label: "Design taken" },
-  "order.design_shared": { label: "Design shared" },
-  "order.design_preview_remarks_updated": { label: "Preview remark" },
-  "order.design_decision": { label: "Design decision" },
-  "order.print_done": { label: "Print done" },
-  "order.balance_payment_recorded": { label: "Balance payment" },
-  "order.balance_fully_paid": { label: "Balance fully paid" },
-  "order.tracking_saved": { label: "Tracking saved" },
-  "order.dispatched": { label: "Dispatched" },
-  "order.completed": { label: "Completed" },
-  "order.admin_patch": { label: "Order patched", showChanges: true },
-};
+import {
+  AuditEntryDetail,
+  auditActionLabel,
+  auditActionOptions,
+  auditEntryHasDetail,
+} from "@/lib/auditLogDisplay";
 
 const PAGE_SIZE = 50;
 
 const filterSelectClass =
   "h-10 rounded-md border border-input bg-background px-3 text-sm min-w-[140px]";
-
-function actionLabel(action: string): string {
-  return AUDIT_ACTION_LABELS[action]?.label ?? action;
-}
-
-function renderMetadataChips(item: AuditLogRow): React.ReactNode {
-  const m = item.metadata;
-  if (!m || Object.keys(m).length === 0) return null;
-  const chips: React.ReactNode[] = [];
-
-  if (m.customerUsername != null && String(m.customerUsername).trim()) {
-    chips.push(
-      <Badge key="cu" variant="secondary">
-        @{String(m.customerUsername)}
-      </Badge>,
-    );
-  }
-  if (m.queryId != null && String(m.queryId).trim()) {
-    chips.push(
-      <Badge key="qid" variant="secondary" className="font-mono text-xs">
-        Query {String(m.queryId)}
-      </Badge>,
-    );
-  }
-  if (m.frameSize != null && String(m.frameSize).trim()) {
-    chips.push(
-      <Badge key="fs" variant="secondary">
-        {String(m.frameSize)}
-      </Badge>,
-    );
-  }
-  if (typeof m.amount === "number") {
-    chips.push(
-      <Badge key="amt" variant="secondary">
-        {formatMoney(m.amount)}
-      </Badge>,
-    );
-  }
-  if (m.remarkPreview != null && String(m.remarkPreview).trim()) {
-    chips.push(
-      <Badge key="rp" variant="secondary" className="max-w-[360px] truncate">
-        &ldquo;{String(m.remarkPreview)}&rdquo;
-      </Badge>,
-    );
-  }
-  if (m.hasImage === true) {
-    chips.push(
-      <Badge key="img" variant="secondary">
-        (Photo attached)
-      </Badge>,
-    );
-  }
-  if (m.assetKind != null) {
-    chips.push(
-      <Badge key="ak" variant="secondary">
-        {String(m.assetKind)}
-      </Badge>,
-    );
-  }
-  if (m.decision != null) {
-    chips.push(
-      <Badge key="dec" variant="secondary">
-        {String(m.decision)}
-      </Badge>,
-    );
-  }
-
-  if (chips.length === 0) return null;
-  return <div className="flex flex-wrap gap-2">{chips}</div>;
-}
-
-function AuditChangesTable({ changes }: { changes: AuditChange[] }) {
-  return (
-    <Table>
-      <TableHeaderBand>
-        <TableRow>
-          <TableHead>Field</TableHead>
-          <TableHead>Before</TableHead>
-          <TableHead>After</TableHead>
-        </TableRow>
-      </TableHeaderBand>
-      <TableBody>
-        {changes.map((c) => (
-          <TableRow key={c.field}>
-            <TableCell className="font-semibold">{c.label}</TableCell>
-            <TableCell className="text-muted-foreground line-through">{c.old || "—"}</TableCell>
-            <TableCell className="text-[var(--ok)]">{c.new || "—"}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
 
 const EMPTY_FILTERS: AuditLogFilters = {
   search: "",
@@ -206,9 +98,7 @@ export function AdminAuditLogPage() {
     void fetchPage(1, EMPTY_FILTERS);
   }, [fetchPage]);
 
-  const actionOptions = useMemo(() => {
-    return Object.entries(AUDIT_ACTION_LABELS).map(([value, { label }]) => ({ value, label }));
-  }, []);
+  const actionOptions = useMemo(() => auditActionOptions(), []);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -421,11 +311,7 @@ export function AdminAuditLogPage() {
             {!loading &&
               items.map((item) => {
                 const dt = formatTableDateTime(item.createdAt);
-                const cfg = AUDIT_ACTION_LABELS[item.action];
-                const changes = item.changes ?? [];
-                const showChanges = (cfg?.showChanges ?? changes.length > 0) && changes.length > 0;
-                const meta = renderMetadataChips(item);
-                const hasDetail = showChanges || !!meta;
+                const hasDetail = auditEntryHasDetail(item);
                 const isOpen = expanded[item.id];
 
                 return (
@@ -454,7 +340,7 @@ export function AdminAuditLogPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="font-semibold">{actionLabel(item.action)}</TableCell>
+                      <TableCell className="font-semibold">{auditActionLabel(item.action)}</TableCell>
                       <TableCell>
                         <div className="font-semibold">{item.actorUsername || "—"}</div>
                         <Badge variant="secondary" className="mt-1 text-[0.65rem]">
@@ -483,9 +369,7 @@ export function AdminAuditLogPage() {
                     {hasDetail && isOpen && (
                       <TableRow className="bg-muted/30">
                         <TableCell colSpan={6} className="py-4">
-                          {showChanges && <AuditChangesTable changes={changes} />}
-                          {!showChanges && meta}
-                          {showChanges && meta && <div className="mt-2.5">{meta}</div>}
+                          <AuditEntryDetail item={item} />
                         </TableCell>
                       </TableRow>
                     )}

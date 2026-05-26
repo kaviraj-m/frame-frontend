@@ -7,8 +7,10 @@ export type OrderListRow = {
   customerEmail?: string;
   addressDetails?: string;
   designRemarks?: string;
+  designStage?: string;
   status: string;
   frameSize?: string;
+  lines?: { lineItemId: string; frameSize: string; quantity: number; sortOrder: number }[];
   paymentMode?: string;
   advancePayment?: number;
   balanceAmount?: number;

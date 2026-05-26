@@ -6,15 +6,18 @@ export function attendancePaths(prefix: AttendanceApiPrefix) {
     current: `${prefix}/attendance/current`,
     clockIn: `${prefix}/attendance/clock-in`,
     presence: `${prefix}/attendance/presence`,
+    heartbeat: `${prefix}/attendance/heartbeat`,
     myDay: (date: string) =>
       `${prefix}/attendance/my-day?date=${encodeURIComponent(date)}`,
     end: (attendanceId: string) => `${prefix}/attendance/end/${encodeURIComponent(attendanceId)}`,
     break: (attendanceId: string) => `${prefix}/attendance/break/${encodeURIComponent(attendanceId)}`,
+    idle: (attendanceId: string) => `${prefix}/attendance/idle/${encodeURIComponent(attendanceId)}`,
     endBreak: (breakId: string) => `${prefix}/breaks/end/${encodeURIComponent(breakId)}`,
+    endIdle: (idleId: string) => `${prefix}/idle/end/${encodeURIComponent(idleId)}`,
   };
 }
 
-/** Grace before auto-break when tab/app is not active. */
-export const AWAY_GRACE_MS = 10_000;
+/** Client pings while Present at least this often; backend ends session as offline if missed. */
+export const PRESENT_HEARTBEAT_MS = 5 * 60 * 1000;
 
 export const ATTENDANCE_TIMEZONE = "Asia/Kolkata";

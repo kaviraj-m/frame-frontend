@@ -1,27 +1,57 @@
+import type { OrderAssetRow } from "./orderAssetLabels";
 import type { OrderListRow } from "./orderListTypes";
 
-export type FulfillmentQueueFilter = "all" | "print_due" | "awaiting_payment" | "ready_to_ship" | "done";
+export type FulfillmentQueueFilter =
+  | "all"
+  | "print_due"
+  | "frame_due"
+  | "awaiting_payment"
+  | "ready_to_ship"
+  | "done";
 
-export type FulfillmentStepId = "print" | "balance" | "dispatch";
+export type FulfillmentStepId = "print" | "frameReady" | "balance" | "dispatch";
 
 export type StepState = "done" | "active" | "locked";
 
 const QUEUE_PRIORITY: Record<string, number> = {
   DESIGN_APPROVED: 0,
   IN_PRINT: 1,
-  PARTIALLY_PAID: 2,
-  PAYMENT_COMPLETED: 3,
-  READY_FOR_COURIER: 4,
-  DISPATCHED: 5,
-  ORDER_COMPLETED: 6,
+  FRAME_READY: 2,
+  PARTIALLY_PAID: 3,
+  PAYMENT_COMPLETED: 4,
+  READY_FOR_COURIER: 5,
+  DISPATCHED: 6,
+  ORDER_COMPLETED: 7,
 };
 
-export function isPrintDone(order: Pick<OrderListRow, "printStage">): boolean {
-  return (order.printStage ?? "").toUpperCase() === "DONE";
+export function isPrintDone(order: Pick<OrderListRow, "status">): boolean {
+  const s = (order.status ?? "").toUpperCase();
+  return s === "IN_PRINT" || s === "FRAME_READY" || s === "PAYMENT_COMPLETED" || s === "DISPATCHED" || s === "ORDER_COMPLETED";
 }
 
-export function hasPrintImage(order: Pick<OrderListRow, "printedFrameImage">): boolean {
-  return Boolean((order.printedFrameImage ?? "").trim());
+export function isFrameReady(order: Pick<OrderListRow, "status">): boolean {
+  return (order.status ?? "").toUpperCase() === "FRAME_READY";
+}
+
+export function hasPrintImage(
+  order: Pick<OrderListRow, "printedFrameImage">,
+  assets?: OrderAssetRow[],
+  lines?: OrderListRow["lines"],
+): boolean {
+  if ((lines?.length ?? 0) > 0) {
+    if (!assets?.length) {
+      return Boolean((order.printedFrameImage ?? "").trim());
+    }
+    return lines!.every((line) =>
+      assets.some(
+        (a) => a.assetType === "PRINT_PROOF" && a.lineItemId === line.lineItemId,
+      ),
+    );
+  }
+  return (
+    Boolean((order.printedFrameImage ?? "").trim()) ||
+    Boolean(assets?.some((a) => a.assetType === "PRINT_PROOF"))
+  );
 }
 
 export function isFullyPaid(order: Pick<OrderListRow, "paymentStatus" | "balanceAmount">): boolean {
@@ -31,13 +61,16 @@ export function isFullyPaid(order: Pick<OrderListRow, "paymentStatus" | "balance
   );
 }
 
-export function fulfillmentQueueAction(order: Pick<OrderListRow, "status" | "printStage" | "balanceAmount" | "paymentStatus">): string {
+export function fulfillmentQueueAction(
+  order: Pick<OrderListRow, "status" | "balanceAmount" | "paymentStatus">,
+): string {
   const status = (order.status ?? "").toUpperCase();
   if (status === "ORDER_COMPLETED" || status === "AMOUNT_RETURNED") return "View";
   if (status === "DISPATCHED") return "View";
   if (isFullyPaid(order)) return "Dispatch";
-  if (isPrintDone(order) && (order.balanceAmount ?? 0) > 0) return "Collect balance";
-  if (status === "DESIGN_APPROVED" || status === "IN_PRINT") return "Mark print done";
+  if (status === "FRAME_READY" && (order.balanceAmount ?? 0) > 0) return "Collect balance";
+  if (status === "IN_PRINT") return "Mark frame ready";
+  if (status === "DESIGN_APPROVED") return "Mark print done";
   if (status === "PAYMENT_COMPLETED") return "Dispatch";
   return "Fulfill";
 }
@@ -56,11 +89,18 @@ export function matchesFulfillmentFilter(order: OrderListRow, filter: Fulfillmen
   const status = (order.status ?? "").toUpperCase();
   switch (filter) {
     case "print_due":
-      return status === "DESIGN_APPROVED" || (status === "IN_PRINT" && !isPrintDone(order));
+      return status === "DESIGN_APPROVED";
+    case "frame_due":
+      return status === "IN_PRINT";
     case "awaiting_payment":
-      return isPrintDone(order) && !isFullyPaid(order) && status !== "ORDER_COMPLETED";
+      return status === "FRAME_READY" && !isFullyPaid(order);
     case "ready_to_ship":
-      return isFullyPaid(order) && status !== "DISPATCHED" && status !== "ORDER_COMPLETED" && status !== "AMOUNT_RETURNED";
+      return (
+        isFullyPaid(order) &&
+        status !== "DISPATCHED" &&
+        status !== "ORDER_COMPLETED" &&
+        status !== "AMOUNT_RETURNED"
+      );
     case "done":
       return status === "ORDER_COMPLETED" || status === "AMOUNT_RETURNED";
     default:
@@ -71,48 +111,59 @@ export function matchesFulfillmentFilter(order: OrderListRow, filter: Fulfillmen
 export function fulfillmentStepStates(order: OrderListRow): Record<FulfillmentStepId, StepState> {
   const status = (order.status ?? "").toUpperCase();
   const printDone = isPrintDone(order);
+  const frameReady = isFrameReady(order) || status === "PAYMENT_COMPLETED" || status === "DISPATCHED" || status === "ORDER_COMPLETED";
   const paid = isFullyPaid(order);
   const shipped = status === "DISPATCHED" || status === "ORDER_COMPLETED";
 
   return {
-    print:
-      status === "DESIGN_APPROVED" || (status === "IN_PRINT" && !printDone)
-        ? "active"
-        : printDone
-          ? "done"
-          : "locked",
-    balance: !printDone ? "locked" : !paid ? "active" : "done",
+    print: status === "DESIGN_APPROVED" ? "active" : printDone ? "done" : "locked",
+    frameReady:
+      status === "IN_PRINT" ? "active" : frameReady ? "done" : printDone ? "locked" : "locked",
+    balance: !frameReady ? "locked" : !paid ? "active" : "done",
     dispatch: !paid ? "locked" : !shipped ? "active" : "done",
   };
 }
 
-export function canUploadPrintImage(order: OrderListRow): boolean {
-  const s = (order.status ?? "").toUpperCase();
-  return (s === "DESIGN_APPROVED" || s === "IN_PRINT") && !isPrintDone(order);
+export function canMarkPrintDone(order: OrderListRow): boolean {
+  return (order.status ?? "").toUpperCase() === "DESIGN_APPROVED";
 }
 
-export function canMarkPrintDone(order: OrderListRow): boolean {
-  return canUploadPrintImage(order) && hasPrintImage(order);
+export function canUploadPrintImage(order: OrderListRow): boolean {
+  return (order.status ?? "").toUpperCase() === "IN_PRINT";
+}
+
+export function canMarkFrameReady(
+  order: OrderListRow,
+  assets?: OrderAssetRow[],
+): boolean {
+  return (
+    (order.status ?? "").toUpperCase() === "IN_PRINT" &&
+    hasPrintImage(order, assets, order.lines)
+  );
 }
 
 export function canCollectBalance(order: OrderListRow): boolean {
-  return isPrintDone(order) && !isFullyPaid(order) && (order.balanceAmount ?? 0) > 0;
+  return isFrameReady(order) && !isFullyPaid(order) && (order.balanceAmount ?? 0) > 0;
 }
 
 export function canDispatch(order: OrderListRow): boolean {
-  return isFullyPaid(order) && (order.status ?? "").toUpperCase() !== "DISPATCHED" && (order.status ?? "").toUpperCase() !== "ORDER_COMPLETED";
+  return (
+    isFullyPaid(order) &&
+    (order.status ?? "").toUpperCase() !== "DISPATCHED" &&
+    (order.status ?? "").toUpperCase() !== "ORDER_COMPLETED"
+  );
 }
 
-/** Print-step WhatsApp — during print phase before dispatch/completion. */
+/** Print-step WhatsApp — during print/frame phase before dispatch/completion. */
 export function canWhatsAppPrint(order: OrderListRow): boolean {
   const status = (order.status ?? "").toUpperCase();
   if (status === "AMOUNT_RETURNED" || status === "DISPATCHED" || status === "ORDER_COMPLETED") {
     return false;
   }
-  if (status === "DESIGN_APPROVED" || status === "IN_PRINT") {
+  if (status === "DESIGN_APPROVED" || status === "IN_PRINT" || status === "FRAME_READY") {
     return true;
   }
-  return isPrintDone(order);
+  return false;
 }
 
 export function hasSavedTracking(order: Pick<OrderListRow, "trackingNumber">): boolean {

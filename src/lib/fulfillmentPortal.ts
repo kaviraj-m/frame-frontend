@@ -10,9 +10,13 @@ export type FulfillmentPortalConfig = {
   patchPath?: string;
   fulfillPath: (orderId: string) => string;
   getOrder: (orderId: string) => string;
+  orderAssets: (orderId: string) => string;
+  orderAssetFile: (orderId: string, assetId: string, disposition: "inline" | "attachment") => string;
   printImageUpload: (orderId: string) => string;
+  linePrintImageUpload: (orderId: string, lineItemId: string) => string;
   printImage: (orderId: string, disposition: "inline" | "attachment") => string;
   printDone: (orderId: string) => string;
+  frameReady: (orderId: string) => string;
   balancePayment: (orderId: string) => string;
   balancePaid: (orderId: string) => string;
   saveTracking: (orderId: string) => string;
@@ -31,9 +35,13 @@ export const adminFulfillmentPortal: FulfillmentPortalConfig = {
   patchPath: "/admin/orders/patch",
   fulfillPath: (orderId) => `/admin/orders/${encodeURIComponent(orderId)}`,
   getOrder: apiPaths.adminOrder,
+  orderAssets: apiPaths.adminOrderAssets,
+  orderAssetFile: apiPaths.adminOrderAssetFile,
   printImageUpload: apiPaths.adminOrderPrintImageUpload,
+  linePrintImageUpload: apiPaths.adminLinePrintImageUpload,
   printImage: apiPaths.adminOrderPrintImage,
   printDone: apiPaths.adminOrderPrintDone,
+  frameReady: apiPaths.adminOrderFrameReady,
   balancePayment: apiPaths.adminOrderBalancePayment,
   balancePaid: apiPaths.adminOrderBalancePaid,
   saveTracking: apiPaths.adminOrderSaveTracking,
@@ -51,9 +59,13 @@ export const executiveFulfillmentPortal: FulfillmentPortalConfig = {
   ordersListPath: "/executive/orders",
   fulfillPath: (orderId) => `/executive/orders/${encodeURIComponent(orderId)}/fulfill`,
   getOrder: apiPaths.executiveFulfillmentOrder,
+  orderAssets: apiPaths.executiveOrderAssets,
+  orderAssetFile: apiPaths.executiveOrderAssetFile,
   printImageUpload: apiPaths.executiveOrderPrintImageUpload,
+  linePrintImageUpload: apiPaths.executiveLinePrintImageUpload,
   printImage: apiPaths.executiveOrderPrintImage,
   printDone: apiPaths.executiveOrderPrintDone,
+  frameReady: apiPaths.executiveOrderFrameReady,
   balancePayment: apiPaths.executiveOrderBalancePayment,
   balancePaid: apiPaths.executiveOrderBalancePaid,
   saveTracking: apiPaths.executiveOrderSaveTracking,

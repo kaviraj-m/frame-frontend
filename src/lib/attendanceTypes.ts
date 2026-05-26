@@ -10,7 +10,8 @@ export type AttendanceSession = {
 
 export type AttendanceEndReason = "manual" | "tab_hidden" | "logout" | "page_leave";
 
-export type BreakSource = "manual" | "auto_away";
+export type BreakSource = "manual";
+export type IdleSource = "tab_away";
 
 export type BreakSession = {
   id: string;
@@ -23,20 +24,29 @@ export type BreakSessionDetail = BreakSession & {
   source?: BreakSource;
 };
 
+export type IdleSession = {
+  id: string;
+  attendanceId: string;
+  source?: IdleSource;
+  startedAt: string;
+  endedAt?: string;
+};
+
 export type AttendanceCurrentPayload = {
   attendance: AttendanceSession | null;
   activeBreak: BreakSession | null;
+  activeIdle: IdleSession | null;
 };
 
 export type AttendanceApiPrefix = "/api/executive" | "/api/designer";
 
 export type AttendanceSegment = {
-  type: "present" | "break";
+  type: "present" | "break" | "idle" | "permission";
   start: string;
   end: string;
   startLabel: string;
   endLabel: string;
-  source?: BreakSource;
+  source?: BreakSource | IdleSource;
 };
 
 export type AttendanceUserDaySummary = {
@@ -44,10 +54,25 @@ export type AttendanceUserDaySummary = {
   username: string;
   role: string;
   workdayStart?: string;
-  status: "present" | "break" | "offline";
+  status: "present" | "break" | "idle" | "offline" | "permission";
   presentMinutes: number;
   breakMinutes: number;
+  idleMinutes: number;
+  presentSeconds: number;
+  breakSeconds: number;
+  idleSeconds: number;
   segmentCount: number;
+};
+
+export type AttendancePermission = {
+  id: string;
+  userId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  note?: string;
+  createdBy: string;
+  createdAt: string;
 };
 
 export type AttendanceDayDetail = {
@@ -56,10 +81,16 @@ export type AttendanceDayDetail = {
   userId: string;
   username: string;
   role: string;
-  status: "present" | "break" | "offline";
+  status: "present" | "break" | "idle" | "offline" | "permission";
   presentMinutes: number;
   breakMinutes: number;
-  segments: AttendanceSegment[];
-  sessions: AttendanceSession[];
-  breaks: BreakSessionDetail[];
+  idleMinutes: number;
+  presentSeconds: number;
+  breakSeconds: number;
+  idleSeconds: number;
+  segments?: AttendanceSegment[] | null;
+  sessions?: AttendanceSession[] | null;
+  breaks?: BreakSessionDetail[] | null;
+  idles?: IdleSession[] | null;
+  permissions?: AttendancePermission[] | null;
 };

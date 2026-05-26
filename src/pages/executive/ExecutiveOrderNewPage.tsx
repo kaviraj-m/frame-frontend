@@ -31,7 +31,7 @@ export function ExecutiveOrderNewPage() {
       <PageHeader
         kicker="From query"
         title="Confirm order"
-        description="Select payment mode (cash or online), then frame size — full price comes from admin pricing for that mode. Advance cannot exceed that total."
+        description="Add one or more frame sizes with quantity. Each size has its own customer photos. Payment proof is separate and not tied to frame lines."
       />
       {o.status && (
         <Alert variant="success" role="status">
@@ -49,18 +49,20 @@ export function ExecutiveOrderNewPage() {
         pricingOptions={o.pricingOptions}
         pricingLoaded={o.pricingLoaded}
         catalogError={o.catalogError}
-        frameSize={o.frameSize}
-        setFrameSize={o.setFrameSize}
+        lines={o.lines}
+        addLine={o.addLine}
+        removeLine={o.removeLine}
+        updateLine={o.updateLine}
+        setLineImages={o.setLineImages}
+        orderTotalPrice={o.orderTotalPrice}
         addressDetails={o.addressDetails}
         setAddressDetails={o.setAddressDetails}
         advancePayment={o.advancePayment}
         setAdvancePayment={o.setAdvancePayment}
         paymentMode={o.paymentMode}
         setPaymentMode={o.setPaymentMode}
-        framingImages={o.framingImages}
-        setFramingImages={o.setFramingImages}
-        paymentProofFile={o.paymentProofFile}
-        setPaymentProofFile={o.setPaymentProofFile}
+        paymentProofFiles={o.paymentProofFiles}
+        setPaymentProofFiles={o.setPaymentProofFiles}
         submitting={o.submitting}
         fieldErrors={o.fieldErrors}
         clearFieldError={o.clearFieldError}

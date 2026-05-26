@@ -11,7 +11,43 @@ import {
 import type { ExecutiveOrderQuerySummary } from "../pages/executive/executiveOrderTypes";
 import type { ExecutivePricingRow } from "../pages/executive/executivePricingTypes";
 
-type ConfirmOrderResponse = { orderId: string };
+export type DraftLine = {
+  id: string;
+  frameSize: string;
+  quantity: number;
+  images: File[];
+};
+
+type ConfirmLineItem = {
+  lineItemId: string;
+  frameSize: string;
+  quantity: number;
+  sortOrder: number;
+};
+
+type ConfirmOrderResponse = {
+  orderId: string;
+  lineItems: ConfirmLineItem[];
+};
+
+function newDraftLine(frameSize = ""): DraftLine {
+  return {
+    id: crypto.randomUUID(),
+    frameSize,
+    quantity: 1,
+    images: [],
+  };
+}
+
+function orderTotal(lines: DraftLine[], pricing: ExecutivePricingRow[], paymentMode: string): number {
+  let total = 0;
+  for (const line of lines) {
+    const row = pricing.find((p) => p.frameSize === line.frameSize);
+    if (!row) continue;
+    total += cataloguePrice(row, paymentMode) * Math.max(1, line.quantity);
+  }
+  return total;
+}
 
 export function useExecutiveOrderNew(queryId: string) {
   const navigate = useNavigate();
@@ -19,12 +55,11 @@ export function useExecutiveOrderNew(queryId: string) {
   const [pricingOptions, setPricingOptions] = useState<ExecutivePricingRow[]>([]);
   const [pricingLoaded, setPricingLoaded] = useState(false);
   const [catalogError, setCatalogError] = useState("");
-  const [frameSize, setFrameSize] = useState("");
+  const [lines, setLines] = useState<DraftLine[]>([newDraftLine()]);
   const [addressDetails, setAddressDetails] = useState("");
   const [advancePayment, setAdvancePayment] = useState("100");
   const [paymentMode, setPaymentMode] = useState("");
-  const [framingImages, setFramingImages] = useState<File[]>([]);
-  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentProofFiles, setPaymentProofFiles] = useState<File[]>([]);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -53,7 +88,6 @@ export function useExecutiveOrderNew(queryId: string) {
           setCatalogError(
             "No active frame sizes in the catalogue. An admin must add pricing under Admin → Frame prices.",
           );
-          setFrameSize("");
         }
       } catch (e) {
         if (!cancelled) setError((e as Error).message);
@@ -68,11 +102,35 @@ export function useExecutiveOrderNew(queryId: string) {
 
   function selectPaymentMode(mode: string) {
     setPaymentMode(mode);
-    setPaymentProofFile(null);
-    setFrameSize((prev) => {
-      if (prev && pricingOptions.some((p) => p.frameSize === prev)) return prev;
-      return pricingOptions[0]?.frameSize ?? "";
+    setPaymentProofFiles([]);
+    setLines((prev) => {
+      if (prev.length === 0) {
+        return [newDraftLine(pricingOptions[0]?.frameSize ?? "")];
+      }
+      return prev.map((line, i) =>
+        i === 0 && !line.frameSize
+          ? { ...line, frameSize: pricingOptions[0]?.frameSize ?? "" }
+          : line,
+      );
     });
+  }
+
+  function addLine() {
+    setLines((prev) => [...prev, newDraftLine(pricingOptions[0]?.frameSize ?? "")]);
+  }
+
+  function removeLine(id: string) {
+    setLines((prev) => (prev.length <= 1 ? prev : prev.filter((l) => l.id !== id)));
+  }
+
+  function updateLine(id: string, patch: Partial<DraftLine>) {
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
+  }
+
+  function setLineImages(id: string, images: File[]) {
+    setLines((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, images } : l)),
+    );
   }
 
   async function createOrder(e: FormEvent) {
@@ -96,66 +154,100 @@ export function useExecutiveOrderNew(queryId: string) {
       return;
     }
     try {
-      if (pricingOptions.length === 0 || !frameSize.trim()) {
+      if (pricingOptions.length === 0) {
         setError(
           catalogError ||
-            "Select a frame size from the catalogue. If the list is empty, ask an admin to configure pricing.",
+            "No active frame sizes in the catalogue. Ask an admin to configure pricing.",
         );
         return;
       }
-      const row = pricingOptions.find((p) => p.frameSize === frameSize);
-      if (!row) {
-        setError("Selected frame size is not in the catalogue.");
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (!line.frameSize.trim()) {
+          setError(`Select a frame size for frame ${i + 1}.`);
+          return;
+        }
+        if (!pricingOptions.some((p) => p.frameSize === line.frameSize)) {
+          setError(`Frame ${i + 1}: size is not in the catalogue.`);
+          return;
+        }
+        if (line.quantity < 1) {
+          setError(`Frame ${i + 1}: quantity must be at least 1.`);
+          return;
+        }
+        if (line.images.length === 0) {
+          setError(`Add at least one framing image for ${line.frameSize}.`);
+          return;
+        }
+      }
+      const fullPrice = orderTotal(lines, pricingOptions, paymentMode);
+      if (fullPrice <= 0) {
+        setError("Could not calculate order total. Check frame sizes and payment mode.");
         return;
       }
-      const fullPrice = cataloguePrice(row, paymentMode);
       if (Number(advancePayment) > fullPrice) {
-        setError("Advance payment cannot exceed the full price for this frame size and payment mode.");
+        setError("Advance payment cannot exceed the full order price.");
         setFieldErrors((prev) => ({
           ...prev,
           advance: "Advance cannot exceed full price",
         }));
         return;
       }
-      if (framingImages.length === 0) {
-        setError("Add at least one image for framing before confirming.");
-        return;
-      }
-      if (paymentMode === "ONLINE" && !paymentProofFile) {
-        setError("Online payment requires a payment screenshot upload.");
+      if (paymentMode === "ONLINE" && paymentProofFiles.length === 0) {
+        setError("Online payment requires at least one payment screenshot.");
         return;
       }
 
       setSubmitting(true);
 
-      let proofKey = "";
+      const proofKeys: string[] = [];
       if (paymentMode === "ONLINE") {
-        setStatus("Uploading payment screenshot…");
-        const fd = new FormData();
-        fd.append("file", paymentProofFile);
-        const up = await apiUpload<{ r2Key: string }>(apiPaths.executiveUploads, fd);
-        proofKey = up.r2Key;
+        for (let i = 0; i < paymentProofFiles.length; i++) {
+          setStatus(`Uploading payment proof ${i + 1} of ${paymentProofFiles.length}…`);
+          const fd = new FormData();
+          fd.append("file", paymentProofFiles[i]);
+          const up = await apiUpload<{ r2Key: string }>(apiPaths.executiveUploads, fd);
+          proofKeys.push(up.r2Key);
+        }
       }
 
       setStatus("Confirming order…");
-      const order = await api<ConfirmOrderResponse>(apiPaths.executiveOrders, {
+      const confirmLines = lines.map((line, i) => ({
+        frameSize: line.frameSize,
+        quantity: Math.max(1, line.quantity),
+        sortOrder: i + 1,
+      }));
+      const res = await api<ConfirmOrderResponse>(apiPaths.executiveOrders, {
         method: "POST",
         body: JSON.stringify({
           queryId,
-          frameSize,
           addressDetails: addressDetails.trim(),
-          photos: [],
           advancePayment: Number(advancePayment),
           paymentMode,
-          advancePaymentScreenshot: paymentMode === "ONLINE" ? proofKey : "",
+          advancePaymentScreenshots: proofKeys,
+          lines: confirmLines,
         }),
       });
 
-      for (let i = 0; i < framingImages.length; i++) {
-        setStatus(`Uploading framing image ${i + 1} of ${framingImages.length}…`);
-        const custFd = new FormData();
-        custFd.append("file", framingImages[i]);
-        await apiUpload(apiPaths.executiveOrderAsset(order.orderId, "customer"), custFd);
+      const itemsBySort = [...res.lineItems].sort((a, b) => a.sortOrder - b.sortOrder);
+
+      for (let i = 0; i < lines.length; i++) {
+        const draft = lines[i];
+        const item = itemsBySort[i];
+        if (!item) {
+          throw new Error(`Missing line item for frame ${i + 1} after confirm.`);
+        }
+        for (let i = 0; i < draft.images.length; i++) {
+          setStatus(
+            `Uploading ${draft.frameSize} image ${i + 1} of ${draft.images.length}…`,
+          );
+          const custFd = new FormData();
+          custFd.append("file", draft.images[i]);
+          await apiUpload(
+            apiPaths.executiveOrderLineAsset(res.orderId, item.lineItemId, "customer"),
+            custFd,
+          );
+        }
       }
 
       setStatus("Order confirmed.");
@@ -167,23 +259,30 @@ export function useExecutiveOrderNew(queryId: string) {
     }
   }
 
+  const orderTotalPrice =
+    paymentMode === "CASH" || paymentMode === "ONLINE"
+      ? orderTotal(lines, pricingOptions, paymentMode)
+      : null;
+
   return {
     query,
     pricingOptions,
     pricingLoaded,
     catalogError,
-    frameSize,
-    setFrameSize,
+    lines,
+    addLine,
+    removeLine,
+    updateLine,
+    setLineImages,
+    orderTotalPrice,
     addressDetails,
     setAddressDetails,
     advancePayment,
     setAdvancePayment,
     paymentMode,
     setPaymentMode: selectPaymentMode,
-    framingImages,
-    setFramingImages,
-    paymentProofFile,
-    setPaymentProofFile,
+    paymentProofFiles,
+    setPaymentProofFiles,
     status,
     error,
     fieldErrors,

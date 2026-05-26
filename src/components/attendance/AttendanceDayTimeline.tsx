@@ -1,5 +1,5 @@
 import type { AttendanceDayDetail, AttendanceSegment } from "@/lib/attendanceTypes";
-import { formatMinutesAsHours } from "@/lib/attendanceIst";
+import { formatSecondsAsHms } from "@/lib/attendanceIst";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -8,38 +8,49 @@ function segmentLabel(seg: AttendanceSegment): string {
 }
 
 export function AttendanceDayTimeline({ detail }: { detail: AttendanceDayDetail }) {
-  if (detail.segments.length === 0) {
+  const segments = detail.segments ?? [];
+  if (segments.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground py-2">No present or break intervals on this day.</p>
+      <p className="text-sm text-muted-foreground py-2">No attendance intervals on this day.</p>
     );
   }
 
   return (
     <div className="space-y-3 py-2">
       <p className="text-xs text-muted-foreground">
-        Times in IST (India) · Present {formatMinutesAsHours(detail.presentMinutes)} · Break{" "}
-        {formatMinutesAsHours(detail.breakMinutes)}
+        Times in IST (India) · Present {formatSecondsAsHms(detail.presentSeconds ?? 0)} · Break{" "}
+        {formatSecondsAsHms(detail.breakSeconds ?? 0)} · Idle {formatSecondsAsHms(detail.idleSeconds ?? 0)}
       </p>
       <ul className="space-y-2">
-        {detail.segments.map((seg, i) => (
+        {segments.map((seg, i) => (
           <li
             key={`${seg.type}-${seg.start}-${i}`}
             className={cn(
               "flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm",
               seg.type === "present"
                 ? "border-emerald-500/30 bg-emerald-500/5"
-                : "border-amber-500/30 bg-amber-500/5",
+                : seg.type === "break"
+                  ? "border-amber-500/30 bg-amber-500/5"
+                  : seg.type === "idle"
+                    ? "border-sky-500/30 bg-sky-500/5"
+                    : "border-violet-500/30 bg-violet-500/5",
             )}
           >
             <span className="font-mono text-xs tabular-nums">{segmentLabel(seg)}</span>
             <Badge variant={seg.type === "present" ? "secondary" : "outline"}>
-              {seg.type === "present" ? "Present" : "Break"}
+              {seg.type === "present"
+                ? "Present"
+                : seg.type === "break"
+                  ? "Break"
+                  : seg.type === "idle"
+                    ? "Idle"
+                    : "Permission"}
             </Badge>
-            {seg.type === "break" && seg.source === "auto_away" ? (
-              <span className="text-[0.65rem] text-muted-foreground">Auto (away)</span>
-            ) : null}
             {seg.type === "break" && seg.source === "manual" ? (
               <span className="text-[0.65rem] text-muted-foreground">Manual</span>
+            ) : null}
+            {seg.type === "idle" ? (
+              <span className="text-[0.65rem] text-muted-foreground">Auto (tab/window away)</span>
             ) : null}
           </li>
         ))}

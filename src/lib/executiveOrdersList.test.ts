@@ -69,6 +69,22 @@ describe("filterExecutiveOrders", () => {
     });
     expect(out.map((o) => o.orderId)).toEqual(["A"]);
   });
+
+  it("filters by exact order status", () => {
+    const orders = [
+      row({ orderId: "A", status: "ORDER_CONFIRMED" }),
+      row({ orderId: "B", status: "IN_DESIGN" }),
+    ];
+    const out = filterExecutiveOrders(orders, {
+      statusFilter: "IN_DESIGN",
+      ageFilter: "all",
+      dateRange: { from: "", to: "" },
+      frameFilter: "all",
+      payModeFilter: "all",
+      search: "",
+    });
+    expect(out.map((o) => o.orderId)).toEqual(["B"]);
+  });
 });
 
 describe("matchesExecutiveAgeFilter", () => {

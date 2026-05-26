@@ -9,7 +9,6 @@ import { api } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
 import { exportOrdersToExcel } from "@/lib/exportOrdersExcel";
 import {
-  countByStatusFilter,
   distinctFrameSizes,
   distinctPaymentModes,
   filterExecutiveOrders,
@@ -19,8 +18,8 @@ import {
   createdPresetToFilters,
   type CreatedDateRange,
   type CreatedFilterPreset,
-  type ExecutiveStatusFilter,
 } from "@/lib/executiveOrdersList";
+import { orderStatusFilterOptions } from "@/lib/orderStatusFilter";
 import { formatMoney, formatShortDateTime } from "@/lib/formatDisplay";
 import type { OrderListRow } from "@/lib/orderListTypes";
 import { Button } from "@/components/ui/button";
@@ -37,15 +36,7 @@ import {
 import { cn } from "@/lib/utils";
 import { WHATSAPP_BTN_COMPACT } from "@/lib/whatsappButtonStyles";
 
-const STATUS_FILTERS: { id: ExecutiveStatusFilter; label: string }[] = [
-  { id: "all", label: "All statuses" },
-  { id: "open", label: "Open" },
-  { id: "new", label: "New" },
-  { id: "in_progress", label: "In progress" },
-  { id: "ready", label: "Ready" },
-  { id: "delivered", label: "Delivered" },
-  { id: "cancelled", label: "Cancelled" },
-];
+const STATUS_FILTER_ALL = "all";
 
 const CREATED_FILTERS: { id: CreatedFilterPreset; label: string }[] = [
   { id: "all", label: "All dates" },
@@ -65,7 +56,7 @@ export function ExecutiveOrdersListPage() {
   const [orders, setOrders] = useState<OrderListRow[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<ExecutiveStatusFilter>("all");
+  const [statusFilter, setStatusFilter] = useState(STATUS_FILTER_ALL);
   const [createdPreset, setCreatedPreset] = useState<CreatedFilterPreset>("all");
   const [dateRange, setDateRange] = useState<CreatedDateRange>(EMPTY_DATE_RANGE);
   const [frameFilter, setFrameFilter] = useState("all");
@@ -133,7 +124,7 @@ export function ExecutiveOrdersListPage() {
     dateRangeInvalid,
   ]);
 
-  const statusCounts = useMemo(() => countByStatusFilter(orders), [orders]);
+  const statusFilterOptions = useMemo(() => orderStatusFilterOptions(orders), [orders]);
   const frameSizes = useMemo(() => distinctFrameSizes(orders), [orders]);
   const paymentModes = useMemo(() => distinctPaymentModes(orders), [orders]);
 
@@ -188,12 +179,12 @@ export function ExecutiveOrdersListPage() {
           <select
             className={filterSelectClass}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ExecutiveStatusFilter)}
+            onChange={(e) => setStatusFilter(e.target.value)}
             aria-label="Filter by status"
           >
-            {STATUS_FILTERS.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.label} ({statusCounts[f.id]})
+            {statusFilterOptions.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label} ({f.count})
               </option>
             ))}
           </select>

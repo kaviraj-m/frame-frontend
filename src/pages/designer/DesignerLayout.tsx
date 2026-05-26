@@ -25,10 +25,10 @@ export function DesignerLayout() {
       attendanceApiPrefix="/api/designer"
     >
       <SmartAttendanceProvider apiPrefix="/api/designer">
-        <div className="executive-app">
+        <>
           <AttendanceStatusChip />
           <Outlet />
-        </div>
+        </>
       </SmartAttendanceProvider>
     </DashboardShell>
   );

@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 const FILTERS: { id: FulfillmentQueueFilter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "print_due", label: "Print due" },
+  { id: "frame_due", label: "Frame due" },
   { id: "awaiting_payment", label: "Awaiting payment" },
   { id: "ready_to_ship", label: "Ready to ship" },
   { id: "done", label: "Done" },
@@ -79,12 +80,14 @@ export function OrdersProductionPage({
     const counts: Record<FulfillmentQueueFilter, number> = {
       all: orders.length,
       print_due: 0,
+      frame_due: 0,
       awaiting_payment: 0,
       ready_to_ship: 0,
       done: 0,
     };
     for (const o of orders) {
       if (matchesFulfillmentFilter(o, "print_due")) counts.print_due++;
+      if (matchesFulfillmentFilter(o, "frame_due")) counts.frame_due++;
       if (matchesFulfillmentFilter(o, "awaiting_payment")) counts.awaiting_payment++;
       if (matchesFulfillmentFilter(o, "ready_to_ship")) counts.ready_to_ship++;
       if (matchesFulfillmentFilter(o, "done")) counts.done++;

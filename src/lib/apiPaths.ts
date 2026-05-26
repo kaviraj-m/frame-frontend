@@ -8,6 +8,7 @@ const enc = (s: string) => encodeURIComponent(s);
 export const apiPaths = {
   authLogin: "/api/auth/login",
   authRefresh: "/api/auth/refresh",
+  authLogout: "/api/auth/logout",
 
   orders: "/api/orders",
 
@@ -32,6 +33,13 @@ export const apiPaths = {
   /** JSON `{ r2Key }` or multipart `file`. kind: `source` (print) or `customer` (customer photo). */
   executiveOrderAsset: (orderId: string, assetKind: "source" | "customer") =>
     `/api/executive/orders/${enc(orderId)}/assets/${assetKind}`,
+  /** Customer photos for a specific frame line (multipart `file`). */
+  executiveOrderLineAsset: (
+    orderId: string,
+    lineItemId: string,
+    assetKind: "customer",
+  ) =>
+    `/api/executive/orders/${enc(orderId)}/line-items/${enc(lineItemId)}/assets/${assetKind}`,
 
   designerQueue: "/api/designer/queue",
   designerOrder: (orderId: string) => `/api/designer/orders/${enc(orderId)}`,
@@ -42,6 +50,8 @@ export const apiPaths = {
   designerTakeOrder: (orderId: string) => `/api/designer/orders/${enc(orderId)}/take`,
   /** JSON `{ r2Key }` or multipart field `file`. */
   designerPreviewAssets: (orderId: string) => `/api/designer/orders/${enc(orderId)}/preview-assets`,
+  designerLinePreviewAssets: (orderId: string, lineItemId: string) =>
+    `/api/designer/orders/${enc(orderId)}/line-items/${enc(lineItemId)}/preview-assets`,
   designerPreviewRemarks: (orderId: string) => `/api/designer/orders/${enc(orderId)}/preview-remarks`,
   designerPreviewRemarkImage: (orderId: string, remarkId: string) =>
     `/api/designer/orders/${enc(orderId)}/preview-remarks/${enc(remarkId)}/file?disposition=inline`,
@@ -49,8 +59,26 @@ export const apiPaths = {
   designerUploads: "/api/designer/uploads",
   designerOrderDecision: (orderId: string) => `/api/designer/orders/${enc(orderId)}/decision`,
 
+  adminAnalyticsOverview: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const qs = params.toString();
+    const base = "/api/admin/analytics/overview";
+    return qs ? `${base}?${qs}` : base;
+  },
   adminUsers: "/api/admin/users",
   adminUser: (userId: string) => `/api/admin/users/${enc(userId)}`,
+  adminUserPerformance: (userId: string, from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const qs = params.toString();
+    const base = `/api/admin/users/${enc(userId)}/performance`;
+    return qs ? `${base}?${qs}` : base;
+  },
+  adminUserPerformanceDay: (userId: string, date: string) =>
+    `/api/admin/users/${enc(userId)}/performance/day?date=${encodeURIComponent(date)}`,
   adminUserPassword: (userId: string) => `/api/admin/users/${enc(userId)}/password`,
   adminUserStatus: (userId: string) => `/api/admin/users/${enc(userId)}/status`,
   adminPricing: "/api/admin/pricing",
@@ -70,7 +98,10 @@ export const apiPaths = {
     `/api/executive/orders/${enc(orderId)}/print-image?disposition=${disposition}`,
   executiveOrderPrintImageUpload: (orderId: string) =>
     `/api/executive/orders/${enc(orderId)}/print-image`,
+  executiveLinePrintImageUpload: (orderId: string, lineItemId: string) =>
+    `/api/executive/orders/${enc(orderId)}/line-items/${enc(lineItemId)}/print-image`,
   executiveOrderPrintDone: (orderId: string) => `/api/executive/orders/${enc(orderId)}/print-done`,
+  executiveOrderFrameReady: (orderId: string) => `/api/executive/orders/${enc(orderId)}/frame-ready`,
   executiveOrderBalancePayment: (orderId: string) =>
     `/api/executive/orders/${enc(orderId)}/balance-payment`,
   executiveOrderBalancePaid: (orderId: string) => `/api/executive/orders/${enc(orderId)}/balance-paid`,
@@ -85,10 +116,21 @@ export const apiPaths = {
   executiveOrderPrintWhatsApp: (orderId: string) =>
     `/api/executive/orders/${enc(orderId)}/whatsapp-print`,
   adminOrder: (orderId: string) => `/api/admin/orders/${enc(orderId)}`,
+  adminOrderDetail: (orderId: string) => `/api/admin/orders/${enc(orderId)}/detail`,
+  adminQueryRemarkImage: (queryId: string, remarkId: string) =>
+    `/api/admin/queries/${enc(queryId)}/remarks/${enc(remarkId)}/file?disposition=inline`,
+  adminPreviewRemarkImage: (orderId: string, remarkId: string) =>
+    `/api/admin/orders/${enc(orderId)}/preview-remarks/${enc(remarkId)}/file?disposition=inline`,
   adminOrderPrintImage: (orderId: string, disposition: "inline" | "attachment") =>
     `/api/admin/orders/${enc(orderId)}/print-image?disposition=${disposition}`,
   adminOrderPrintImageUpload: (orderId: string) => `/api/admin/orders/${enc(orderId)}/print-image`,
+  adminLinePrintImageUpload: (orderId: string, lineItemId: string) =>
+    `/api/admin/orders/${enc(orderId)}/line-items/${enc(lineItemId)}/print-image`,
   adminOrderPrintDone: (orderId: string) => `/api/admin/orders/${enc(orderId)}/print-done`,
+  adminOrderFrameReady: (orderId: string) => `/api/admin/orders/${enc(orderId)}/frame-ready`,
+  adminOrderAssets: (orderId: string) => `/api/admin/orders/${enc(orderId)}/assets`,
+  adminOrderAssetFile: (orderId: string, assetId: string, disposition: "inline" | "attachment") =>
+    `/api/admin/orders/${enc(orderId)}/files/${enc(assetId)}?disposition=${disposition}`,
   adminOrderBalancePayment: (orderId: string) => `/api/admin/orders/${enc(orderId)}/balance-payment`,
   adminOrderBalancePaid: (orderId: string) => `/api/admin/orders/${enc(orderId)}/balance-paid`,
   adminOrderSaveTracking: (orderId: string) => `/api/admin/orders/${enc(orderId)}/tracking`,
@@ -107,5 +149,16 @@ export const apiPaths = {
     `/api/admin/attendance/daily?date=${encodeURIComponent(date)}`,
   adminAttendanceUserDay: (userId: string, date: string) =>
     `/api/admin/attendance/users/${encodeURIComponent(userId)}/day?date=${encodeURIComponent(date)}`,
+  adminAttendancePermissions: (date?: string, userId?: string) => {
+    const q = new URLSearchParams();
+    if (date) q.set("date", date);
+    if (userId) q.set("userId", userId);
+    const qs = q.toString();
+    return qs ? `/api/admin/attendance/permissions?${qs}` : "/api/admin/attendance/permissions";
+  },
+  adminCreateAttendancePermission: "/api/admin/attendance/permissions",
+  adminDeleteAttendancePermission: (permissionId: string) =>
+    `/api/admin/attendance/permissions/${encodeURIComponent(permissionId)}`,
   adminAuditLogs: "/api/admin/audit-logs",
+  adminQueries: "/api/admin/queries",
 } as const;

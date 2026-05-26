@@ -20,6 +20,9 @@ describe("apiPaths", () => {
     expect(apiPaths.executiveOrderAssets(id)).toBe("/api/executive/orders/ORD-1/assets");
     expect(apiPaths.executiveOrderAsset(id, "source")).toBe("/api/executive/orders/ORD-1/assets/source");
     expect(apiPaths.executiveOrderAsset(id, "customer")).toBe("/api/executive/orders/ORD-1/assets/customer");
+    expect(apiPaths.executiveOrderLineAsset(id, "oli-1", "customer")).toBe(
+      "/api/executive/orders/ORD-1/line-items/oli-1/assets/customer",
+    );
     expect(apiPaths.executiveOrderAssetFile(id, "ast-1", "inline")).toBe(
       "/api/executive/orders/ORD-1/files/ast-1?disposition=inline",
     );
@@ -49,10 +52,20 @@ describe("apiPaths", () => {
   it("uses admin fulfillment URLs", () => {
     const id = "O-ADM";
     expect(apiPaths.adminOrder(id)).toBe("/api/admin/orders/O-ADM");
+    expect(apiPaths.adminOrderDetail(id)).toBe("/api/admin/orders/O-ADM/detail");
+    expect(apiPaths.adminQueryRemarkImage("Q-1", "rm-1")).toBe(
+      "/api/admin/queries/Q-1/remarks/rm-1/file?disposition=inline",
+    );
+    expect(apiPaths.adminPreviewRemarkImage(id, "dpr-1")).toBe(
+      "/api/admin/orders/O-ADM/preview-remarks/dpr-1/file?disposition=inline",
+    );
     expect(apiPaths.adminOrderPrintImage(id, "inline")).toBe(
       "/api/admin/orders/O-ADM/print-image?disposition=inline",
     );
     expect(apiPaths.adminOrderPrintImageUpload(id)).toBe("/api/admin/orders/O-ADM/print-image");
+    expect(apiPaths.adminLinePrintImageUpload(id, "li-1")).toBe(
+      "/api/admin/orders/O-ADM/line-items/li-1/print-image",
+    );
     expect(apiPaths.adminOrderPrintDone(id)).toBe("/api/admin/orders/O-ADM/print-done");
     expect(apiPaths.adminOrderBalancePayment(id)).toBe("/api/admin/orders/O-ADM/balance-payment");
     expect(apiPaths.adminOrderBalancePaid(id)).toBe("/api/admin/orders/O-ADM/balance-paid");
@@ -70,6 +83,9 @@ describe("apiPaths", () => {
   it("uses designer order work URLs", () => {
     const id = "O-2";
     expect(apiPaths.designerPreviewAssets(id)).toBe("/api/designer/orders/O-2/preview-assets");
+    expect(apiPaths.designerLinePreviewAssets(id, "li-1")).toBe(
+      "/api/designer/orders/O-2/line-items/li-1/preview-assets",
+    );
     expect(apiPaths.designerOrder(id)).toBe("/api/designer/orders/O-2");
     expect(apiPaths.designerOrderAssets(id)).toBe("/api/designer/orders/O-2/assets");
     expect(apiPaths.designerOrderAssetFile(id, "ast-1", "inline")).toBe(

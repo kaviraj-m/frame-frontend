@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -156,6 +157,15 @@ export function AdminUsersPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2 flex-wrap">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Link to={`/admin/users/${encodeURIComponent(u.id)}`}>Details</Link>
+                    </Button>
                     <Button
                       type="button"
                       variant="secondary"

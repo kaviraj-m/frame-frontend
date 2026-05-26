@@ -2,6 +2,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AdminFulfillmentStepper } from "@/components/admin/AdminFulfillmentStepper";
+import { OrderAssetsPanel } from "@/components/orders/OrderAssetsPanel";
 import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { FilePickField } from "@/components/ui/FilePickField";
 import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
@@ -14,6 +15,7 @@ import {
 import {
   canCollectBalance,
   canDispatch,
+  canMarkFrameReady,
   canMarkPrintDone,
   canSaveTracking,
   canUploadPrintImage,
@@ -24,6 +26,12 @@ import {
 } from "@/lib/adminFulfillment";
 import { ExternalLinkIcon } from "@/components/ui/ExternalLinkIcon";
 import { formatMoney } from "@/lib/formatDisplay";
+import {
+  fileLabelFromKey,
+  groupAssetsByFrameSize,
+  sortFrameSizeGroups,
+  type OrderAssetRow,
+} from "@/lib/orderAssetLabels";
 import {
   validatePositiveNumber,
   validateRequired,
@@ -47,6 +55,7 @@ export function OrderFulfillmentPage({
   const orderId = orderIdParam ? decodeURIComponent(orderIdParam) : "";
 
   const [order, setOrder] = useState<AdminOrderRow | null>(null);
+  const [assets, setAssets] = useState<OrderAssetRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -54,6 +63,7 @@ export function OrderFulfillmentPage({
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentProofFiles, setPaymentProofFiles] = useState<File[]>([]);
   const [printImageFiles, setPrintImageFiles] = useState<File[]>([]);
+  const [printImageFilesByLine, setPrintImageFilesByLine] = useState<Record<string, File[]>>({});
   const [printPreviewUrl, setPrintPreviewUrl] = useState<string | null>(null);
   const [printPreviewLoading, setPrintPreviewLoading] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
@@ -76,18 +86,24 @@ export function OrderFulfillmentPage({
     setTrackingNumber(o.trackingNumber ?? "");
   }, [orderId, portal]);
 
+  const loadAssets = useCallback(async () => {
+    if (!orderId.trim()) return;
+    const list = await api<OrderAssetRow[]>(portal.orderAssets(orderId));
+    setAssets(list);
+  }, [orderId, portal]);
+
   const refresh = useCallback(async () => {
     setError("");
     setStatus("");
     setLoading(true);
     try {
-      await loadOrder();
+      await Promise.all([loadOrder(), loadAssets()]);
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [loadOrder]);
+  }, [loadOrder, loadAssets]);
 
   useEffect(() => {
     refresh();
@@ -121,6 +137,39 @@ export function OrderFulfillmentPage({
 
   useEffect(() => () => clearPrintPreview(), [clearPrintPreview]);
 
+  const filePath = useCallback(
+    (oid: string, assetId: string, disposition: "inline" | "attachment") =>
+      portal.orderAssetFile(oid, assetId, disposition),
+    [portal],
+  );
+
+  async function viewDesignAsset(assetId: string, r2Key: string) {
+    setError("");
+    try {
+      const blob = await apiBinaryGet(filePath(orderId, assetId, "inline"));
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function downloadDesignAsset(assetId: string, r2Key: string) {
+    setError("");
+    try {
+      const blob = await apiBinaryGet(filePath(orderId, assetId, "attachment"));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileLabelFromKey(r2Key);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
   function mergeOrderCustomer(prev: AdminOrderRow | null, next: AdminOrderRow): AdminOrderRow {
     return {
       ...next,
@@ -147,17 +196,68 @@ export function OrderFulfillmentPage({
   }
 
   async function onSavePrintImage() {
-    const file = printImageFiles[0];
-    if (!file) {
-      setError("Choose a print image to upload.");
+    const lines = order?.lines ?? [];
+    if (lines.length > 0) {
+      const pending = lines.filter((l) => (printImageFilesByLine[l.lineItemId] ?? []).length > 0);
+      if (pending.length === 0) {
+        setError("Choose at least one framed photo for a frame size.");
+        return;
+      }
+      setBusy(true);
+      setError("");
+      setStatus("");
+      try {
+        let lastOrder: AdminOrderRow | null = null;
+        for (const line of pending) {
+          for (const file of printImageFilesByLine[line.lineItemId] ?? []) {
+            const fd = new FormData();
+            fd.append("file", file);
+            lastOrder = await apiUpload<AdminOrderRow>(
+              portal.linePrintImageUpload(orderId, line.lineItemId),
+              fd,
+            );
+          }
+        }
+        if (lastOrder) {
+          setOrder((prev) => mergeOrderCustomer(prev, lastOrder!));
+          setTrackingNumber(lastOrder.trackingNumber ?? "");
+        }
+        setPrintImageFilesByLine({});
+        setStatus("Framed photo(s) saved.");
+        await loadAssets();
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setBusy(false);
+      }
       return;
     }
-    await runAction(async () => {
-      const fd = new FormData();
-      fd.append("file", file);
-      return apiUpload<AdminOrderRow>(portal.printImageUpload(orderId), fd);
-    }, "Print image saved.");
-    setPrintImageFiles([]);
+    if (printImageFiles.length === 0) {
+      setError("Choose at least one framed photo to upload.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    setStatus("");
+    try {
+      let lastOrder: AdminOrderRow | null = null;
+      for (const file of printImageFiles) {
+        const fd = new FormData();
+        fd.append("file", file);
+        lastOrder = await apiUpload<AdminOrderRow>(portal.printImageUpload(orderId), fd);
+      }
+      if (lastOrder) {
+        setOrder((prev) => mergeOrderCustomer(prev, lastOrder!));
+        setTrackingNumber(lastOrder.trackingNumber ?? "");
+      }
+      setPrintImageFiles([]);
+      setStatus("Framed photo(s) saved.");
+      await loadAssets();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function openPrintImageView() {
@@ -198,6 +298,21 @@ export function OrderFulfillmentPage({
         runAction(
           () => api<AdminOrderRow>(portal.printDone(orderId), { method: "POST" }),
           "Print marked done.",
+        ),
+    );
+  }
+
+  function onFrameReady() {
+    confirmAction(
+      {
+        title: "Mark frame ready",
+        message: "Mark the framed photo as ready for this order?",
+        confirmLabel: "Mark frame ready",
+      },
+      () =>
+        runAction(
+          () => api<AdminOrderRow>(portal.frameReady(orderId), { method: "POST" }),
+          "Frame marked ready.",
         ),
     );
   }
@@ -333,12 +448,36 @@ export function OrderFulfillmentPage({
     );
   }
 
+  const previewAssets = assets.filter((a) => a.assetType === "DESIGN_PREVIEW");
+  const previewByFrame = sortFrameSizeGroups(
+    groupAssetsByFrameSize(previewAssets, "Design preview (ungrouped)"),
+    order?.lines,
+  );
+  const showPreviewByFrame =
+    (order?.lines?.length ?? 0) > 0 ||
+    previewByFrame.length > 1 ||
+    previewAssets.some((a) => Boolean(a.frameSize?.trim()));
+  const frameLines = order?.lines ?? [];
+  const printProofAssets = assets.filter((a) => a.assetType === "PRINT_PROOF");
+  const printProofByFrame = sortFrameSizeGroups(
+    groupAssetsByFrameSize(printProofAssets, "Framed photo (ungrouped)"),
+    order?.lines,
+  );
+  const showPrintByFrame =
+    frameLines.length > 0 ||
+    printProofByFrame.length > 1 ||
+    printProofAssets.some((a) => Boolean(a.frameSize?.trim()));
+  const hasPendingLinePrints = frameLines.some(
+    (l) => (printImageFilesByLine[l.lineItemId] ?? []).length > 0,
+  );
+  const printReady = order ? hasPrintImage(order, assets, order.lines) : false;
+
   return (
     <div className="flex flex-col gap-6 min-w-0 w-full">
       <PageHeader
         kicker={`${portal.kicker} · Fulfillment`}
         title={orderId}
-        description="Print, balance collection, and dispatch (marks the order completed)."
+        description="In print, frame ready, balance collection, and dispatch."
         actions={
           <Button asChild variant="secondary" size="sm">
             <Link to={portal.productionPath}>Production queue</Link>
@@ -370,66 +509,47 @@ export function OrderFulfillmentPage({
 
           <AdminFulfillmentStepper order={order} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card>
-              <h2 className="text-lg font-semibold mb-2">1. Print</h2>
-              <p className="text-sm text-muted-foreground">
-                Print stage: <strong>{order.printStage?.trim() ? order.printStage : "—"}</strong>
+              <h2 className="text-lg font-semibold mb-2">1. In print</h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                {showPreviewByFrame
+                  ? "Design previews are grouped by frame size. Mark print done when all sizes are printed."
+                  : "Review the approved design preview, then mark print done when printing is complete."}
               </p>
-              <FilePickField
-                label="Printed frame image (required before marking done)"
-                files={printImageFiles}
-                onFilesChange={setPrintImageFiles}
-                disabled={busy || !canUploadPrintImage(order)}
-                chooseLabel="Choose image"
-                accept="image/*"
-              />
-              <div className="flex flex-wrap gap-2 mt-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  disabled={busy || !canUploadPrintImage(order) || !printImageFiles[0]}
-                  onClick={() => void onSavePrintImage()}
-                >
-                  Save print image
-                </Button>
-                {hasPrintImage(order) ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={busy || printPreviewLoading}
-                      onClick={() => void openPrintImageView()}
-                    >
-                      View image
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      disabled={busy || printPreviewLoading}
-                      onClick={() => void downloadPrintImage()}
-                    >
-                      Download
-                    </Button>
-                  </>
-                ) : null}
-              </div>
-              {printPreviewLoading && (
-                <p className="text-xs text-muted-foreground mt-2">Loading preview…</p>
-              )}
-              {printPreviewUrl && !printPreviewLoading ? (
-                <img
-                  src={printPreviewUrl}
-                  alt="Printed frame preview"
-                  className="mt-3 max-h-48 rounded-md border border-border object-contain"
+              {showPreviewByFrame ? (
+                <div className="space-y-6">
+                  {previewByFrame.map(([label, groupAssets]) => (
+                    <div key={label}>
+                      <h3 className="text-sm font-semibold mb-2">{label}</h3>
+                      <OrderAssetsPanel
+                        orderId={orderId}
+                        assets={groupAssets}
+                        filePath={filePath}
+                        showTypeColumn={false}
+                        onView={viewDesignAsset}
+                        onDownload={downloadDesignAsset}
+                        emptyMessage=""
+                      />
+                    </div>
+                  ))}
+                  {previewAssets.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No design preview uploaded yet.</p>
+                  ) : null}
+                </div>
+              ) : (
+                <OrderAssetsPanel
+                  orderId={orderId}
+                  assets={assets}
+                  filePath={filePath}
+                  filter={(a) => a.assetType === "DESIGN_PREVIEW"}
+                  showTypeColumn={false}
+                  onView={viewDesignAsset}
+                  onDownload={downloadDesignAsset}
+                  emptyMessage="No design preview uploaded yet."
                 />
-              ) : null}
-              {!hasPrintImage(order) && canUploadPrintImage(order) ? (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Upload and save a print image before marking print done. Balance collection unlocks after print is done.
-                </p>
-              ) : null}
-              <div className="flex flex-wrap gap-2 mt-3">
+              )}
+              <div className="flex flex-wrap gap-2 mt-4">
                 {canWhatsAppPrint(order) ? (
                   <Button
                     type="button"
@@ -450,11 +570,6 @@ export function OrderFulfillmentPage({
                 <Button
                   type="button"
                   disabled={busy || !canMarkPrintDone(order)}
-                  title={
-                    hasPrintImage(order)
-                      ? "Mark print as complete"
-                      : "Save a print image first"
-                  }
                   onClick={onPrintDone}
                 >
                   Mark print done
@@ -463,7 +578,130 @@ export function OrderFulfillmentPage({
             </Card>
 
             <Card>
-              <h2 className="text-lg font-semibold mb-2">2. Balance</h2>
+              <h2 className="text-lg font-semibold mb-2">2. Frame ready</h2>
+              <p className="text-sm text-muted-foreground mb-3">
+                {showPrintByFrame
+                  ? "Upload framed photos for each frame size before marking frame ready. You can add more than one image per size."
+                  : "Upload a photo of the finished frame before marking frame ready. Balance collection unlocks after frame ready."}
+              </p>
+              {showPrintByFrame ? (
+                <div className="space-y-6">
+                  {frameLines.map((line) => (
+                    <div key={line.lineItemId} className="rounded-md border border-border p-4 space-y-3">
+                      <h3 className="text-sm font-semibold">
+                        {line.frameSize}
+                        {line.quantity > 1 ? ` × ${line.quantity}` : ""}
+                      </h3>
+                      <FilePickField
+                        label="Framed photos"
+                        hint="At least one image required for this frame size. You can add more than one."
+                        files={printImageFilesByLine[line.lineItemId] ?? []}
+                        onFilesChange={(files) =>
+                          setPrintImageFilesByLine((prev) => ({ ...prev, [line.lineItemId]: files }))
+                        }
+                        disabled={busy || !canUploadPrintImage(order)}
+                        chooseLabel="Add photo"
+                        accept="image/*"
+                        multiple
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <FilePickField
+                  label="Framed photos (required before marking frame ready)"
+                  hint="You can add more than one image."
+                  files={printImageFiles}
+                  onFilesChange={setPrintImageFiles}
+                  disabled={busy || !canUploadPrintImage(order)}
+                  chooseLabel="Add photo"
+                  accept="image/*"
+                  multiple
+                />
+              )}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={
+                    busy ||
+                    !canUploadPrintImage(order) ||
+                    (showPrintByFrame ? !hasPendingLinePrints : printImageFiles.length === 0)
+                  }
+                  onClick={() => void onSavePrintImage()}
+                >
+                  {showPrintByFrame ? "Save framed photo(s)" : "Save framed photo"}
+                </Button>
+                {!showPrintByFrame && printReady ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={busy || printPreviewLoading}
+                      onClick={() => void openPrintImageView()}
+                    >
+                      View image
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={busy || printPreviewLoading}
+                      onClick={() => void downloadPrintImage()}
+                    >
+                      Download
+                    </Button>
+                  </>
+                ) : null}
+              </div>
+              {printPreviewLoading && !showPrintByFrame ? (
+                <p className="text-xs text-muted-foreground mt-2">Loading preview…</p>
+              ) : null}
+              {printPreviewUrl && !printPreviewLoading && !showPrintByFrame ? (
+                <img
+                  src={printPreviewUrl}
+                  alt="Framed photo preview"
+                  className="mt-3 max-h-48 rounded-md border border-border object-contain"
+                />
+              ) : null}
+              {printProofByFrame.length > 0 ? (
+                <div className="mt-5 space-y-6">
+                  {printProofByFrame.map(([label, groupAssets]) => (
+                    <div key={label}>
+                      <h3 className="text-sm font-semibold mb-2">{label}</h3>
+                      <OrderAssetsPanel
+                        orderId={orderId}
+                        assets={groupAssets}
+                        filePath={filePath}
+                        showTypeColumn={false}
+                        onView={viewDesignAsset}
+                        onDownload={downloadDesignAsset}
+                        emptyMessage=""
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              {!printReady && canUploadPrintImage(order) ? (
+                <p className="text-xs text-muted-foreground mt-2">
+                  {showPrintByFrame
+                    ? "Save at least one framed photo for every frame size before marking frame ready."
+                    : "Save at least one framed photo before marking frame ready."}
+                </p>
+              ) : null}
+              <div className="flex flex-wrap gap-2 mt-3">
+                <Button
+                  type="button"
+                  disabled={busy || !canMarkFrameReady(order, assets)}
+                  title={printReady ? "Mark frame as ready" : "Save framed photo(s) first"}
+                  onClick={onFrameReady}
+                >
+                  Mark frame ready
+                </Button>
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="text-lg font-semibold mb-2">3. Balance</h2>
               <dl className="grid grid-cols-3 gap-3 text-sm mb-4">
                 <div>
                   <dt className="text-muted-foreground text-xs">Advance</dt>
@@ -522,7 +760,7 @@ export function OrderFulfillmentPage({
             </Card>
 
             <Card>
-              <h2 className="text-lg font-semibold mb-2">3. Dispatch</h2>
+              <h2 className="text-lg font-semibold mb-2">4. Dispatch</h2>
               <form className="space-y-3" onSubmit={onSaveTracking}>
                 <label className="block space-y-1 text-sm">
                   <span className="text-muted-foreground">Tracking number</span>

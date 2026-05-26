@@ -1,4 +1,4 @@
-import { useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 
 export const IMAGE_FILE_ACCEPT = "image/jpeg,image/png,image/webp,image/*,.jpg,.jpeg,.png,.webp";
@@ -30,29 +30,37 @@ export function FilePickField({
 }: Props) {
   const id = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef<File[]>(files);
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  function mergePicked(current: File[], picked: File[]): File[] {
+    const seen = new Set(current.map(fileKey));
+    const next = [...current];
+    for (const f of picked) {
+      const k = fileKey(f);
+      if (!seen.has(k)) {
+        seen.add(k);
+        next.push(f);
+      }
+    }
+    return next;
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const picked = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (picked.length === 0) return;
     if (multiple) {
-      const seen = new Set(files.map(fileKey));
-      const next = [...files];
-      for (const f of picked) {
-        const k = fileKey(f);
-        if (!seen.has(k)) {
-          seen.add(k);
-          next.push(f);
-        }
-      }
-      onFilesChange(next);
+      onFilesChange(mergePicked(filesRef.current, picked));
     } else {
       onFilesChange([picked[0]]);
     }
   }
 
   function removeAt(index: number) {
-    onFilesChange(files.filter((_, i) => i !== index));
+    onFilesChange(filesRef.current.filter((_, i) => i !== index));
     if (inputRef.current) inputRef.current.value = "";
   }
 

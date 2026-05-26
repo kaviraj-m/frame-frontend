@@ -4,8 +4,8 @@ import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
 import { AttendanceDayTimeline } from "@/components/attendance/AttendanceDayTimeline";
 import { api } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
-import { todayISTDateString, formatMinutesAsHours } from "@/lib/attendanceIst";
-import type { AttendanceDayDetail, AttendanceUserDaySummary } from "@/lib/attendanceTypes";
+import { todayISTDateString, formatSecondsAsHms } from "@/lib/attendanceIst";
+import type { AttendanceDayDetail, AttendancePermission, AttendanceUserDaySummary } from "@/lib/attendanceTypes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +27,12 @@ function statusBadge(status: string) {
   }
   if (status === "break") {
     return <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30">Break</Badge>;
+  }
+  if (status === "idle") {
+    return <Badge className="bg-sky-500/15 text-sky-300 border-sky-500/30">Idle</Badge>;
+  }
+  if (status === "permission") {
+    return <Badge className="bg-violet-500/15 text-violet-300 border-violet-500/30">Permission</Badge>;
   }
   return <Badge variant="secondary">Offline</Badge>;
 }
@@ -51,6 +57,12 @@ export function AdminAttendanceReportPage() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [permissions, setPermissions] = useState<AttendancePermission[]>([]);
+  const [permUserId, setPermUserId] = useState("");
+  const [permStart, setPermStart] = useState("09:00");
+  const [permEnd, setPermEnd] = useState("18:00");
+  const [permNote, setPermNote] = useState("");
+  const [permSaving, setPermSaving] = useState(false);
 
   const loadDaily = useCallback(async () => {
     setErr("");
@@ -72,9 +84,58 @@ export function AdminAttendanceReportPage() {
     }
   }, [date]);
 
+  const loadPermissions = useCallback(async () => {
+    try {
+      const out = await api<AttendancePermission[]>(apiPaths.adminAttendancePermissions(date));
+      setPermissions(out);
+    } catch {
+      setPermissions([]);
+    }
+  }, [date]);
+
   useEffect(() => {
     void loadDaily();
-  }, [loadDaily]);
+    void loadPermissions();
+  }, [loadDaily, loadPermissions]);
+
+  async function savePermission() {
+    if (!permUserId) {
+      setErr("Select a user for permission");
+      return;
+    }
+    setPermSaving(true);
+    setErr("");
+    try {
+      await api(apiPaths.adminCreateAttendancePermission, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: permUserId,
+          date,
+          startTime: permStart,
+          endTime: permEnd,
+          note: permNote,
+        }),
+      });
+      await loadPermissions();
+      await loadDaily();
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setPermSaving(false);
+    }
+  }
+
+  async function deletePermission(id: string) {
+    setErr("");
+    try {
+      await api(apiPaths.adminDeleteAttendancePermission(id), { method: "DELETE" });
+      await loadPermissions();
+      await loadDaily();
+    } catch (e) {
+      setErr((e as Error).message);
+    }
+  }
 
   async function loadUserDetail(userId: string) {
     if (expandedUserId === userId) {
@@ -160,6 +221,7 @@ export function AdminAttendanceReportPage() {
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Present</TableHead>
               <TableHead className="text-right">Break</TableHead>
+              <TableHead className="text-right">Idle</TableHead>
               <TableHead className="text-right">Timeline</TableHead>
             </TableRow>
           </TableHeaderBand>
@@ -171,8 +233,9 @@ export function AdminAttendanceReportPage() {
                   <TableCell className="text-xs text-muted-foreground">{r.role}</TableCell>
                   <TableCell className="text-sm tabular-nums">{formatWorkdayStart(r.workdayStart)}</TableCell>
                   <TableCell>{statusBadge(r.status)}</TableCell>
-                  <TableCell className="text-right text-sm">{formatMinutesAsHours(r.presentMinutes)}</TableCell>
-                  <TableCell className="text-right text-sm">{formatMinutesAsHours(r.breakMinutes)}</TableCell>
+                  <TableCell className="text-right text-sm">{formatSecondsAsHms(r.presentSeconds)}</TableCell>
+                  <TableCell className="text-right text-sm">{formatSecondsAsHms(r.breakSeconds)}</TableCell>
+                  <TableCell className="text-right text-sm">{formatSecondsAsHms(r.idleSeconds)}</TableCell>
                   <TableCell className="text-right">
                     <Button
                       type="button"
@@ -186,7 +249,7 @@ export function AdminAttendanceReportPage() {
                 </TableRow>
                 {expandedUserId === r.userId && (
                   <TableRow key={`${r.userId}-detail`}>
-                    <TableCell colSpan={7} className="bg-muted/20">
+                    <TableCell colSpan={8} className="bg-muted/20">
                       {detailLoading ? (
                         <p className="text-sm text-muted-foreground py-2">Loading timeline…</p>
                       ) : detail ? (
@@ -199,7 +262,7 @@ export function AdminAttendanceReportPage() {
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                   No users match this date or filter.
                 </TableCell>
               </TableRow>
@@ -213,6 +276,62 @@ export function AdminAttendanceReportPage() {
             </>
           )}
         </p>
+      </div>
+      <div className="rounded-lg border p-4 space-y-4">
+        <h3 className="text-base font-semibold">Permission (excused absence)</h3>
+        <p className="text-sm text-muted-foreground">
+          Grant a time window on a date. This counts as permission, not unpresent.
+        </p>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="perm-user">User</Label>
+            <select
+              id="perm-user"
+              className="flex h-9 w-[200px] rounded-md border border-input bg-background px-3 text-sm"
+              value={permUserId}
+              onChange={(e) => setPermUserId(e.target.value)}
+            >
+              <option value="">Select user</option>
+              {rows.map((r) => (
+                <option key={r.userId} value={r.userId}>
+                  {r.username}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="perm-start">Start (IST)</Label>
+            <Input id="perm-start" type="time" value={permStart} onChange={(e) => setPermStart(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="perm-end">End (IST)</Label>
+            <Input id="perm-end" type="time" value={permEnd} onChange={(e) => setPermEnd(e.target.value)} />
+          </div>
+          <div className="space-y-2 flex-1 min-w-[200px]">
+            <Label htmlFor="perm-note">Note</Label>
+            <Input id="perm-note" value={permNote} onChange={(e) => setPermNote(e.target.value)} placeholder="Optional" />
+          </div>
+          <Button type="button" size="sm" onClick={() => void savePermission()} disabled={permSaving}>
+            Add permission
+          </Button>
+        </div>
+        {permissions.length > 0 ? (
+          <ul className="text-sm space-y-2">
+            {permissions.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-2">
+                <span>
+                  {p.userId} · {p.date} · {p.startTime}–{p.endTime}
+                  {p.note ? ` · ${p.note}` : ""}
+                </span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => void deletePermission(p.id)}>
+                  Remove
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No permissions for this date.</p>
+        )}
       </div>
     </div>
   );

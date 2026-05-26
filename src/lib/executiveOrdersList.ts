@@ -1,7 +1,9 @@
 import { orderCreatedCalendarDayKey, orderRowAgeTier } from "./orderCreatedAge";
 import { mapOrderStatus } from "./orderStatusUi";
+import { matchesOrderStatusFilter } from "./orderStatusFilter";
 import type { OrderListRow } from "./orderListTypes";
 
+/** @deprecated Use string status filter with matchesOrderStatusFilter — kept for tests. */
 export type ExecutiveStatusFilter =
   | "all"
   | "open"
@@ -175,7 +177,7 @@ export function countByStatusFilter(
 export function filterExecutiveOrders(
   orders: OrderListRow[],
   opts: {
-    statusFilter: ExecutiveStatusFilter;
+    statusFilter: string;
     ageFilter: ExecutiveAgeFilter;
     dateRange: CreatedDateRange;
     frameFilter: string;
@@ -185,7 +187,7 @@ export function filterExecutiveOrders(
 ): OrderListRow[] {
   const dateOk = isValidDateRange(opts.dateRange);
   return orders.filter((o) => {
-    if (!matchesExecutiveStatusFilter(o.status, opts.statusFilter)) return false;
+    if (!matchesOrderStatusFilter(o.status, opts.statusFilter)) return false;
     if (!matchesExecutiveAgeFilter(o.createdAt, o.status, opts.ageFilter)) return false;
     if (dateOk && !matchesCreatedDateRange(o.createdAt, opts.dateRange)) return false;
     if (!matchesFrameSizeFilter(o.frameSize, opts.frameFilter)) return false;
@@ -196,7 +198,7 @@ export function filterExecutiveOrders(
 }
 
 export function hasActiveExecutiveFilters(opts: {
-  statusFilter: ExecutiveStatusFilter;
+  statusFilter: string;
   createdPreset: CreatedFilterPreset;
   dateRange: CreatedDateRange;
   frameFilter: string;

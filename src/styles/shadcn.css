@@ -38,12 +38,16 @@
   }
 
   html {
-    @apply antialiased;
+    @apply h-full antialiased;
   }
 
   body {
-    @apply bg-background text-foreground min-h-screen font-sans;
+    @apply h-full overflow-hidden bg-background font-sans text-foreground;
     font-family: var(--font-sans);
+  }
+
+  #root {
+    @apply h-full;
   }
 }
 

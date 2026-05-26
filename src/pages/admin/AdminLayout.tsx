@@ -4,8 +4,15 @@ import type { ShellNavSection } from "../../components/layout/DashboardShell";
 
 const navSections: ShellNavSection[] = [
   {
+    heading: "Insights",
+    items: [
+      { to: "/admin/analytics", label: "Analytics", end: true },
+      { to: "/admin/reports/attendance", label: "Attendance report", end: true },
+    ],
+  },
+  {
     heading: "Team",
-    items: [{ to: "/admin/users", label: "User management", end: true }],
+    items: [{ to: "/admin/users", label: "User management", end: false }],
   },
   {
     heading: "Configuration",
@@ -24,10 +31,10 @@ const navSections: ShellNavSection[] = [
   {
     heading: "Operations",
     items: [
-      { to: "/admin/orders", label: "All orders", end: true },
+      { to: "/admin/orders", label: "All orders", end: false },
+      { to: "/admin/queries", label: "All queries", end: true },
       { to: "/admin/orders/production", label: "Production & dispatch", end: true },
       { to: "/admin/orders/patch", label: "Update order", end: true },
-      { to: "/admin/reports/attendance", label: "Attendance report", end: true },
       { to: "/admin/audit-log", label: "Audit log", end: true },
     ],
   },
@@ -37,7 +44,7 @@ export function AdminLayout() {
   return (
     <DashboardShell
       title="Admin"
-      subtitle="People, pricing, and order controls"
+      subtitle="Analytics, team, orders, and configuration"
       navSections={navSections}
       hideTopbar
     >

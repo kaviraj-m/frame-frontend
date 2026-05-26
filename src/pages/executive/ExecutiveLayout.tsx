@@ -47,10 +47,10 @@ export function ExecutiveLayout() {
       attendanceApiPrefix="/api/executive"
     >
       <SmartAttendanceProvider apiPrefix="/api/executive">
-        <div className="executive-app">
+        <>
           <AttendanceStatusChip />
           <Outlet />
-        </div>
+        </>
       </SmartAttendanceProvider>
     </DashboardShell>
   );

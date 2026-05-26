@@ -13,6 +13,7 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   "order.design_preview_remarks_updated": "Preview remark",
   "order.design_decision": "Design decision",
   "order.print_done": "Print done",
+  "order.frame_ready": "Frame ready",
   "order.balance_payment_recorded": "Balance payment",
   "order.balance_fully_paid": "Balance fully paid",
   "order.tracking_saved": "Tracking saved",

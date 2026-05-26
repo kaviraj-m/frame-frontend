@@ -28,7 +28,7 @@ import {
   canUploadPreview,
   isOrderGoneError,
 } from "@/lib/designerWorkflow";
-import { fileLabelFromKey, isExecutiveSourceAsset, type OrderAssetRow } from "@/lib/orderAssetLabels";
+import { fileLabelFromKey, type OrderAssetRow } from "@/lib/orderAssetLabels";
 import { validateRemarkOrImage } from "@/lib/fieldValidation";
 import type { OrderListRow } from "@/lib/orderListTypes";
 
@@ -42,6 +42,7 @@ export function DesignerOrderWorkPage() {
   const [loading, setLoading] = useState(true);
   const [orderGone, setOrderGone] = useState(false);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewFilesByLine, setPreviewFilesByLine] = useState<Record<string, File[]>>({});
   const [previewRemarkHistory, setPreviewRemarkHistory] = useState<RemarkEntry[]>([]);
   const [newPreviewRemark, setNewPreviewRemark] = useState("");
   const [previewRemarkImage, setPreviewRemarkImage] = useState<File | null>(null);
@@ -178,12 +179,12 @@ export function DesignerOrderWorkPage() {
   }
 
   async function downloadAllSources() {
-    const sourceAssets = assets.filter((a) => isExecutiveSourceAsset(a.assetType));
-    if (sourceAssets.length === 0) return;
+    const sourceOnly = assets.filter((a) => a.assetType === "SOURCE_PHOTO");
+    if (sourceOnly.length === 0) return;
     setDownloadAllBusy(true);
     setError("");
     try {
-      for (const a of sourceAssets) {
+      for (const a of sourceOnly) {
         await downloadAsset(a.id, a.r2Key);
       }
     } catch (e) {
@@ -246,6 +247,39 @@ export function DesignerOrderWorkPage() {
 
   async function uploadPreview(e: FormEvent) {
     e.preventDefault();
+    const lines = order?.lines ?? [];
+    if (lines.length > 0) {
+      const pending = lines.filter((l) => (previewFilesByLine[l.lineItemId] ?? []).length > 0);
+      if (pending.length === 0) {
+        setError("Choose at least one preview file for a frame size.");
+        return;
+      }
+      setUploadBusy(true);
+      setError("");
+      setStatus("");
+      try {
+        let lastOrder: OrderListRow | null = null;
+        for (const line of pending) {
+          for (const file of previewFilesByLine[line.lineItemId] ?? []) {
+            const fd = new FormData();
+            fd.append("file", file);
+            lastOrder = await apiUpload<OrderListRow>(
+              apiPaths.designerLinePreviewAssets(orderId, line.lineItemId),
+              fd,
+            );
+          }
+        }
+        if (lastOrder) setOrder(lastOrder);
+        setPreviewFilesByLine({});
+        setStatus("Preview(s) uploaded — design marked as sent to customer.");
+        await loadAssets();
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setUploadBusy(false);
+      }
+      return;
+    }
     if (!previewFile) {
       setError("Choose a preview file to upload.");
       return;
@@ -335,8 +369,33 @@ export function DesignerOrderWorkPage() {
     );
   }
 
-  const sourceAssets = assets.filter((a) => isExecutiveSourceAsset(a.assetType));
+  const sourceOnlyAssets = assets.filter((a) => a.assetType === "SOURCE_PHOTO");
+  const customerAssets = assets.filter((a) => a.assetType === "CUSTOMER_PHOTO");
+  const customerGroups = (() => {
+    const map = new Map<string, OrderAssetRow[]>();
+    for (const a of customerAssets) {
+      const label = a.frameSize?.trim() || "Customer photos (ungrouped)";
+      const list = map.get(label) ?? [];
+      list.push(a);
+      map.set(label, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  })();
   const previewAssets = assets.filter((a) => a.assetType === "DESIGN_PREVIEW");
+  const frameLines = order?.lines ?? [];
+  const previewGroups = (() => {
+    const map = new Map<string, OrderAssetRow[]>();
+    for (const a of previewAssets) {
+      const label = a.frameSize?.trim() || "Design preview (ungrouped)";
+      const list = map.get(label) ?? [];
+      list.push(a);
+      map.set(label, list);
+    }
+    return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+  })();
+  const hasPendingLinePreviews = frameLines.some(
+    (l) => (previewFilesByLine[l.lineItemId] ?? []).length > 0,
+  );
   const orderStatus = order?.status ?? "";
   const isRevision = orderStatus.toUpperCase() === "DESIGN_REVISION_REQUIRED";
 
@@ -430,40 +489,101 @@ export function DesignerOrderWorkPage() {
 
       <Card>
         <h3 className="text-lg font-semibold mb-2">2. Executive photos</h3>
-        <p className="text-sm text-muted-foreground mb-4">Source and customer images uploaded when the order was confirmed.</p>
-        <OrderAssetsPanel
-          orderId={orderId}
-          assets={assets}
-          filePath={filePath}
-          filter={(a) => isExecutiveSourceAsset(a.assetType)}
-          showThumbnailGrid
-          onView={viewAsset}
-          onDownload={downloadAsset}
-          onDownloadAll={sourceAssets.length > 0 ? downloadAllSources : undefined}
-          downloadAllBusy={downloadAllBusy}
-          emptyMessage="No executive photos yet."
-        />
+        <p className="text-sm text-muted-foreground mb-4">
+          Customer images are grouped by frame size. Source photos (if any) are listed separately.
+        </p>
+        {sourceOnlyAssets.length > 0 ? (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold mb-2">Source photos (print)</h4>
+            <OrderAssetsPanel
+              orderId={orderId}
+              assets={sourceOnlyAssets}
+              filePath={filePath}
+              showThumbnailGrid
+              onView={viewAsset}
+              onDownload={downloadAsset}
+              onDownloadAll={downloadAllSources}
+              downloadAllBusy={downloadAllBusy}
+              emptyMessage="No source photos."
+            />
+          </div>
+        ) : null}
+        {customerGroups.length > 0 ? (
+          <div className="space-y-6">
+            {customerGroups.map(([label, groupAssets]) => (
+              <div key={label}>
+                <h4 className="text-sm font-semibold mb-2">{label}</h4>
+                <OrderAssetsPanel
+                  orderId={orderId}
+                  assets={groupAssets}
+                  filePath={filePath}
+                  showThumbnailGrid
+                  onView={viewAsset}
+                  onDownload={downloadAsset}
+                  emptyMessage="No photos for this frame."
+                />
+              </div>
+            ))}
+          </div>
+        ) : sourceOnlyAssets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No executive photos yet.</p>
+        ) : null}
       </Card>
 
       <Card>
         <h3 className="text-lg font-semibold mb-2">3. Design preview</h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Upload what you send the customer. Status becomes <strong>DESIGN_SHARED_WITH_CUSTOMER</strong> automatically.
+          {frameLines.length > 0
+            ? "Upload a preview for each frame size you send the customer. Status becomes DESIGN_SHARED_WITH_CUSTOMER after upload."
+            : "Upload what you send the customer. Status becomes DESIGN_SHARED_WITH_CUSTOMER automatically."}
         </p>
         {canUploadPreview(orderStatus) ? (
           <form className="space-y-4" onSubmit={uploadPreview}>
-            <Input
-              type="file"
-              accept="image/*,.pdf"
-              disabled={uploadBusy || busy}
-              onChange={(e) => setPreviewFile(e.target.files?.[0] ?? null)}
-            />
-            <Button type="submit" disabled={uploadBusy || busy || !previewFile}>
+            {frameLines.length > 0 ? (
+              <div className="space-y-6">
+                {frameLines.map((line) => (
+                  <div key={line.lineItemId} className="rounded-md border border-border p-4 space-y-3">
+                    <h4 className="text-sm font-semibold">
+                      {line.frameSize}
+                      {line.quantity > 1 ? ` × ${line.quantity}` : ""}
+                    </h4>
+                    <FilePickField
+                      label="Preview files"
+                      hint="Images or PDF for this frame size. You can add more than one."
+                      chooseLabel="Add preview"
+                      files={previewFilesByLine[line.lineItemId] ?? []}
+                      onFilesChange={(files) =>
+                        setPreviewFilesByLine((prev) => ({ ...prev, [line.lineItemId]: files }))
+                      }
+                      disabled={uploadBusy || busy}
+                      multiple
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Input
+                type="file"
+                accept="image/*,.pdf"
+                disabled={uploadBusy || busy}
+                onChange={(e) => setPreviewFile(e.target.files?.[0] ?? null)}
+              />
+            )}
+            <Button
+              type="submit"
+              disabled={
+                uploadBusy ||
+                busy ||
+                (frameLines.length > 0 ? !hasPendingLinePreviews : !previewFile)
+              }
+            >
               {uploadBusy ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                   Uploading…
                 </>
+              ) : frameLines.length > 0 ? (
+                "Upload preview(s)"
               ) : (
                 "Upload preview"
               )}
@@ -512,25 +632,42 @@ export function DesignerOrderWorkPage() {
           </form>
         </div>
         {previewAssets.length > 0 ? (
-          <div style={{ marginTop: 16 }}>
-            <OrderAssetsPanel
-              orderId={orderId}
-              assets={assets}
-              filePath={filePath}
-              filter={(a) => a.assetType === "DESIGN_PREVIEW"}
-              showTypeColumn={false}
-              onView={viewAsset}
-              onDownload={downloadAsset}
-              onWhatsApp={openWhatsAppToCustomer}
-              whatsappBusy={waBusy}
-              whatsappDisabled={busy || uploadBusy || !order?.customerPhoneNumber?.trim()}
-              whatsappTitle={
+          <div className="mt-5 space-y-6">
+            {previewGroups.map(([label, groupAssets]) => (
+              <div key={label}>
+                <h4 className="text-sm font-semibold mb-2">{label}</h4>
+                <OrderAssetsPanel
+                  orderId={orderId}
+                  assets={groupAssets}
+                  filePath={filePath}
+                  showTypeColumn={false}
+                  onView={viewAsset}
+                  onDownload={downloadAsset}
+                  emptyMessage=""
+                />
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={waBusy || busy || uploadBusy || !order?.customerPhoneNumber?.trim()}
+              title={
                 order?.customerPhoneNumber?.trim()
-                  ? `Open WhatsApp for ${order.customerUsername || "customer"} (new tab). Attach the preview file in chat.`
+                  ? `Open WhatsApp for ${order.customerUsername || "customer"} (new tab). Attach preview files in chat.`
                   : "Customer phone missing"
               }
-              emptyMessage=""
-            />
+              onClick={openWhatsAppToCustomer}
+            >
+              {waBusy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                  Opening…
+                </>
+              ) : (
+                "Open WhatsApp"
+              )}
+            </Button>
           </div>
         ) : null}
       </Card>

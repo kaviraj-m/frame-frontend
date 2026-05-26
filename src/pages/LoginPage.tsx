@@ -10,6 +10,8 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { useTheme } from "@/context/ThemeContext";
 import { api } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
+import { attendancePaths } from "@/lib/attendanceApi";
+import type { AttendanceApiPrefix } from "@/lib/attendanceTypes";
 import { firstError, validateRequired } from "@/lib/fieldValidation";
 
 export function LoginPage() {
@@ -49,6 +51,11 @@ export function LoginPage() {
       localStorage.setItem("userId", out.user.id);
       localStorage.setItem("username", username.trim());
       setUserId(out.user.id);
+      const role = String(out.user.role || "").toUpperCase();
+      if (role === "EXECUTIVE" || role === "DESIGNER") {
+        const prefix: AttendanceApiPrefix = role === "EXECUTIVE" ? "/api/executive" : "/api/designer";
+        await api(attendancePaths(prefix).clockIn, { method: "POST" }).catch(() => {});
+      }
       nav(`/${out.user.role.toLowerCase()}`);
     } catch (error) {
       setErr((error as Error).message);

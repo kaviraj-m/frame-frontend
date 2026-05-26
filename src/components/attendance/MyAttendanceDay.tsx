@@ -57,6 +57,20 @@ export function MyAttendanceDay({ apiPrefix }: { apiPrefix: AttendanceApiPrefix 
           <AlertDescription>{err}</AlertDescription>
         </Alert>
       ) : null}
+      {detail?.sessions?.length ? (
+        <div className="text-xs text-muted-foreground space-y-1">
+          {detail.sessions.map((s) => (
+            <p key={s.id}>
+              Login: {new Date(s.startedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })} ·
+              Logout:{" "}
+              {s.endedAt
+                ? new Date(s.endedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+                : "Active"}
+              {s.endReason ? ` (${s.endReason})` : ""}
+            </p>
+          ))}
+        </div>
+      ) : null}
       {detail ? <AttendanceDayTimeline detail={detail} /> : null}
     </div>
   );
