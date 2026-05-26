@@ -12,7 +12,7 @@ export default defineConfig({
   },
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5173,
+    port: 3015,
     // Cloudflare Tunnel / ngrok — host changes each session
     allowedHosts: [".trycloudflare.com", ".ngrok-free.app", ".ngrok.io", "localhost"],
   },
