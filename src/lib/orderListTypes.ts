@@ -23,3 +23,27 @@ export type OrderListRow = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+/** Merge API order updates without dropping line items or customer fields omitted from the response. */
+export function mergeOrderFromApi(prev: OrderListRow | null, next: OrderListRow): OrderListRow {
+  return {
+    ...next,
+    lines: (next.lines?.length ? next.lines : prev?.lines) ?? next.lines,
+    customerUsername: next.customerUsername ?? prev?.customerUsername,
+    customerPhoneNumber: next.customerPhoneNumber ?? prev?.customerPhoneNumber,
+    customerEmail: next.customerEmail ?? prev?.customerEmail,
+  };
+}
+
+/** Frame size(s) for list tables and Excel — uses line items when present. */
+export function formatOrderFrameLabel(order: Pick<OrderListRow, "frameSize" | "lines">): string {
+  const lines = order.lines ?? [];
+  if (lines.length > 0) {
+    return [...lines]
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((l) => (l.quantity > 1 ? `${l.frameSize} ×${l.quantity}` : l.frameSize))
+      .join(", ");
+  }
+  const single = order.frameSize?.trim();
+  return single || "—";
+}

@@ -101,7 +101,12 @@ export function useAdminUserPerformance(userId: string | undefined) {
         const out = await api<UserPerformanceDayDetail>(
           apiPaths.adminUserPerformanceDay(userId, date),
         );
-        setDayDetail(out);
+        setDayDetail({
+          ...out,
+          createdOrders: out.createdOrders ?? [],
+          completedOrders: out.completedOrders ?? [],
+          createdQueries: out.createdQueries ?? [],
+        });
       } catch (e) {
         setErr((e as Error).message);
         setExpandedDate(null);

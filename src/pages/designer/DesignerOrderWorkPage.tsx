@@ -30,7 +30,7 @@ import {
 } from "@/lib/designerWorkflow";
 import { fileLabelFromKey, type OrderAssetRow } from "@/lib/orderAssetLabels";
 import { validateRemarkOrImage } from "@/lib/fieldValidation";
-import type { OrderListRow } from "@/lib/orderListTypes";
+import { mergeOrderFromApi, type OrderListRow } from "@/lib/orderListTypes";
 
 export function DesignerOrderWorkPage() {
   const nav = useNavigate();
@@ -135,7 +135,7 @@ export function DesignerOrderWorkPage() {
     setStatus("");
     try {
       const o = await api<OrderListRow>(apiPaths.designerTakeOrder(orderId), { method: "POST" });
-      setOrder(o);
+      setOrder((prev) => mergeOrderFromApi(prev, o));
       setStatus("Order taken — status is now IN_DESIGN.");
     } catch (e) {
       setError((e as Error).message);
@@ -233,7 +233,7 @@ export function DesignerOrderWorkPage() {
           body: JSON.stringify({ remarks: text, imageKey }),
         },
       );
-      setOrder(detail);
+      setOrder((prev) => mergeOrderFromApi(prev, detail));
       setPreviewRemarkHistory(detail.previewRemarkHistory ?? []);
       setNewPreviewRemark("");
       setPreviewRemarkImage(null);
@@ -269,7 +269,7 @@ export function DesignerOrderWorkPage() {
             );
           }
         }
-        if (lastOrder) setOrder(lastOrder);
+        if (lastOrder) setOrder((prev) => mergeOrderFromApi(prev, lastOrder));
         setPreviewFilesByLine({});
         setStatus("Preview(s) uploaded — design marked as sent to customer.");
         await loadAssets();
@@ -291,7 +291,7 @@ export function DesignerOrderWorkPage() {
       const fd = new FormData();
       fd.append("file", previewFile);
       const o = await apiUpload<OrderListRow>(apiPaths.designerPreviewAssets(orderId), fd);
-      setOrder(o);
+      setOrder((prev) => mergeOrderFromApi(prev, o));
       setPreviewFile(null);
       setStatus("Preview uploaded — design marked as sent to customer.");
       await loadAssets();
@@ -322,7 +322,7 @@ export function DesignerOrderWorkPage() {
             method: "POST",
             body: JSON.stringify({ decision, remarks: decisionRemarks }),
           });
-          setOrder(o);
+          setOrder((prev) => mergeOrderFromApi(prev, o));
           if (decision === "APPROVE") {
             setStatus("Design approved — order moves to admin for print and dispatch.");
             setTimeout(() => nav("/designer/queue"), 1200);

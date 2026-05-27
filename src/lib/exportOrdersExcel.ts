@@ -1,6 +1,6 @@
 import * as XLSX from "xlsx";
 import { formatMoney, formatShortDateTime } from "./formatDisplay";
-import type { OrderListRow } from "./orderListTypes";
+import { formatOrderFrameLabel, type OrderListRow } from "./orderListTypes";
 
 export type OrderExportRow = {
   Order: string;
@@ -18,20 +18,23 @@ export type OrderExportRow = {
 };
 
 export function rowsToExportSheetData(orders: OrderListRow[]): OrderExportRow[] {
-  return orders.map((o) => ({
+  return orders.map((o) => {
+    const frame = formatOrderFrameLabel(o);
+    return {
     Order: o.orderId,
     Query: o.queryId,
     Customer: o.customerUsername?.trim() || "",
     Phone: o.customerPhoneNumber?.trim() || "",
     Email: o.customerEmail?.trim() || "",
-    Frame: o.frameSize?.trim() || "",
+    Frame: frame === "—" ? "" : frame,
     Status: (o.status ?? "").trim(),
     Advance: formatMoney(o.advancePayment),
     Balance: formatMoney(o.balanceAmount),
     "Pay mode": o.paymentMode?.trim() || "",
     Created: formatShortDateTime(o.createdAt) || "",
     Updated: formatShortDateTime(o.updatedAt) || "",
-  }));
+  };
+  });
 }
 
 function defaultExportFilename(): string {

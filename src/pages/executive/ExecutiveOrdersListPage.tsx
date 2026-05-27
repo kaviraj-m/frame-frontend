@@ -21,7 +21,7 @@ import {
 } from "@/lib/executiveOrdersList";
 import { orderStatusFilterOptions } from "@/lib/orderStatusFilter";
 import { formatMoney, formatShortDateTime } from "@/lib/formatDisplay";
-import type { OrderListRow } from "@/lib/orderListTypes";
+import { formatOrderFrameLabel, type OrderListRow } from "@/lib/orderListTypes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -330,7 +330,9 @@ export function ExecutiveOrdersListPage() {
                 <TableCell className="max-w-[180px] truncate" title={o.customerEmail || undefined}>
                   {o.customerEmail?.trim() ? o.customerEmail : "—"}
                 </TableCell>
-                <TableCell>{o.frameSize ?? "—"}</TableCell>
+                <TableCell className="max-w-[160px] truncate" title={formatOrderFrameLabel(o)}>
+                  {formatOrderFrameLabel(o)}
+                </TableCell>
                 <TableCell>
                   <OrderStatusBadge status={o.status} />
                 </TableCell>

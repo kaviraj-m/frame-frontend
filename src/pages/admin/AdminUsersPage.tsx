@@ -8,6 +8,7 @@ import { AdminUserEditorModal } from "./users/AdminUserEditorModal";
 import { AdminUserPasswordModal } from "./users/AdminUserPasswordModal";
 import type { AdminUserRow } from "./users/adminUserTypes";
 import { useAdminUsersList } from "./users/useAdminUsersList";
+import { exportUsersToExcel } from "@/lib/exportUsersExcel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -111,6 +112,15 @@ export function AdminUsersPage() {
         <div className="ml-auto flex flex-wrap gap-2 items-center">
           <Button type="button" size="sm" onClick={openCreate}>
             Add user
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={filtered.length === 0}
+            onClick={() => exportUsersToExcel(filtered)}
+          >
+            Export Excel
           </Button>
           <Button type="button" variant="secondary" size="sm" onClick={loadUsers}>
             Refresh

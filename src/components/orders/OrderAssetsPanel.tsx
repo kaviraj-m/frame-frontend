@@ -7,6 +7,7 @@ import {
 } from "@/lib/orderAssetLabels";
 import { formatShortDateTime } from "@/lib/formatDisplay";
 import { ExternalLinkIcon } from "@/components/ui/ExternalLinkIcon";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -32,6 +33,7 @@ type OrderAssetsPanelProps = {
   filePath: (orderId: string, assetId: string, disposition: "inline" | "attachment") => string;
   filter?: (asset: OrderAssetRow) => boolean;
   showTypeColumn?: boolean;
+  showFrameSizeColumn?: boolean;
   showThumbnailGrid?: boolean;
   onView: (assetId: string, r2Key: string) => void;
   onDownload: (assetId: string, r2Key: string) => void;
@@ -107,6 +109,7 @@ export function OrderAssetsPanel({
   filePath,
   filter,
   showTypeColumn = true,
+  showFrameSizeColumn = false,
   showThumbnailGrid = false,
   onView,
   onDownload,
@@ -120,6 +123,8 @@ export function OrderAssetsPanel({
 }: OrderAssetsPanelProps) {
   const rows = filter ? assets.filter(filter) : assets;
   const imageRows = rows.filter((a) => isImageKey(a.r2Key));
+  const showFrameSize =
+    showFrameSizeColumn || rows.some((a) => Boolean(a.frameSize?.trim()));
 
   if (rows.length === 0) {
     return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
@@ -167,6 +172,7 @@ export function OrderAssetsPanel({
           <TableHeaderBand>
             <TableRow>
               {showTypeColumn ? <TableHead>Type</TableHead> : null}
+              {showFrameSize ? <TableHead>Frame size</TableHead> : null}
               <TableHead>File</TableHead>
               <TableHead>Uploaded</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -176,6 +182,17 @@ export function OrderAssetsPanel({
             {rows.map((a, rowIndex) => (
               <TableRow key={a.id}>
                 {showTypeColumn ? <TableCell>{assetTypeLabel(a.assetType)}</TableCell> : null}
+                {showFrameSize ? (
+                  <TableCell className="whitespace-nowrap text-xs">
+                    {a.frameSize?.trim() ? (
+                      <Badge variant="secondary" className="text-xs font-normal">
+                        {a.frameSize.trim()}
+                      </Badge>
+                    ) : (
+                      "—"
+                    )}
+                  </TableCell>
+                ) : null}
                 <TableCell className="font-mono text-xs">{fileLabelFromKey(a.r2Key)}</TableCell>
                 <TableCell className="whitespace-nowrap text-xs">
                   {a.createdAt ? formatShortDateTime(a.createdAt) : "—"}

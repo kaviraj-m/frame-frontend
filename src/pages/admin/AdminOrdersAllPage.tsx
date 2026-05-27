@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { OrderIdCell } from "@/components/orders/OrderIdCell";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { OrderRowAgeLegend } from "@/components/orders/OrderRowAgeLegend";
 import { orderRowAgeDataAttr, orderRowClassName } from "@/lib/orderCreatedAge";
 import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
 import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
 import { api } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
+import { exportOrdersToExcel } from "@/lib/exportOrdersExcel";
 import { formatShortDate, formatTableDateTime } from "@/lib/formatDisplay";
 import { AdminOrderDetailModal } from "@/components/admin/AdminOrderDetailModal";
+import { formatOrderFrameLabel } from "@/lib/orderListTypes";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -204,6 +208,8 @@ export function AdminOrdersAllPage() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<AdminOrderRow | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { confirmAction, dialogProps } = useConfirmDialog();
 
   const refresh = useCallback(async () => {
     setError("");
@@ -253,6 +259,31 @@ export function AdminOrdersAllPage() {
     return data;
   }, [sortedOrders, search, activeFilter]);
 
+  function requestDeleteOrder(row: AdminOrderRow) {
+    confirmAction(
+      {
+        title: "Delete order",
+        message: `Permanently delete order ${row.orderId}? This removes the order, its files, and line items. This cannot be undone.`,
+        confirmLabel: "Delete order",
+        variant: "danger",
+      },
+      async () => {
+        setError("");
+        setDeletingId(row.orderId);
+        try {
+          await api(apiPaths.adminDeleteOrder(row.orderId), { method: "DELETE" });
+          if (selectedOrder?.orderId === row.orderId) setSelectedOrder(null);
+          if (detailOrderId === row.orderId) setDetailOrderId(null);
+          await refresh();
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    );
+  }
+
   return (
     <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
       {error ? (
@@ -288,6 +319,15 @@ export function AdminOrdersAllPage() {
               </Button>
             ))}
             <div className="ml-auto flex flex-wrap gap-2 items-center">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={filteredOrders.length === 0}
+                onClick={() => exportOrdersToExcel(filteredOrders)}
+              >
+                Export Excel
+              </Button>
               <Button asChild size="sm" className="gap-1.5">
                 <Link to="/admin/orders/patch">
                   <IconPlus />
@@ -309,6 +349,7 @@ export function AdminOrdersAllPage() {
                   <TableHead>Query ID</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Phone</TableHead>
+                  <TableHead>Frame</TableHead>
                   <TableHead>Remarks</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead>Updated</TableHead>
@@ -360,6 +401,14 @@ export function AdminOrdersAllPage() {
                         </div>
                       </TableCell>
                       <TableCell>{row.customerPhoneNumber?.trim() || "—"}</TableCell>
+                      <TableCell>
+                        <span
+                          className="block max-w-[140px] truncate text-sm"
+                          title={formatOrderFrameLabel(row)}
+                        >
+                          {formatOrderFrameLabel(row)}
+                        </span>
+                      </TableCell>
                       <TableCell>
                         <span className="block max-w-[220px] truncate text-sm text-muted-foreground" title={rem}>
                           {rem}
@@ -433,6 +482,24 @@ export function AdminOrdersAllPage() {
                               </svg>
                             </Link>
                           </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            title="Delete order"
+                            disabled={deletingId === row.orderId}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              requestDeleteOrder(row);
+                            }}
+                            aria-label="Delete order"
+                          >
+                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                              <polyline points="3 6 5 6 21 6" />
+                              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -440,7 +507,7 @@ export function AdminOrdersAllPage() {
                 })}
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                       No orders match your filters.
                     </TableCell>
                   </TableRow>
@@ -490,6 +557,7 @@ export function AdminOrdersAllPage() {
         open={!!detailOrderId}
         onClose={() => setDetailOrderId(null)}
       />
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

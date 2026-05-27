@@ -5,6 +5,7 @@ import { fulfillmentQueueAction } from "@/lib/adminFulfillment";
 import { OrderRowAgeLegend } from "@/components/orders/OrderRowAgeLegend";
 import { orderRowAgeDataAttr, orderRowClassName } from "@/lib/orderCreatedAge";
 import { formatMoney, formatShortDateTime } from "@/lib/formatDisplay";
+import { formatOrderFrameLabel } from "@/lib/orderListTypes";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { Button } from "@/components/ui/button";
 import {
@@ -76,7 +77,9 @@ export function AdminOrdersTable({
                 <TableCell className="max-w-[180px] truncate" title={o.customerEmail || undefined}>
                   {o.customerEmail?.trim() ? o.customerEmail : "—"}
                 </TableCell>
-                <TableCell>{o.frameSize ?? "—"}</TableCell>
+                <TableCell className="max-w-[160px] truncate" title={formatOrderFrameLabel(o)}>
+                  {formatOrderFrameLabel(o)}
+                </TableCell>
                 <TableCell>
                   <OrderStatusBadge status={o.status} />
                 </TableCell>

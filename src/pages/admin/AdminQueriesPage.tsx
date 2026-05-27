@@ -1,8 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataBoardSearchIcon } from "@/components/ui/DataBoardSearchIcon";
+import { useConfirmDialog } from "@/hooks/useConfirmDialog";
 import { api } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
+import { exportQueriesToExcel } from "@/lib/exportQueriesExcel";
 import { formatShortDateTime, truncate } from "@/lib/formatDisplay";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,16 +28,27 @@ type AdminQuery = {
   createdByExecutiveId?: string;
   executiveUsername?: string;
   linkedOrderId?: string;
+  linkedOrderIds?: string[];
   createdAt?: string;
   updatedAt?: string;
 };
+
+function linkedOrderIdsForRow(q: AdminQuery): string[] {
+  if (q.linkedOrderIds?.length) {
+    return q.linkedOrderIds.map((id) => id.trim()).filter(Boolean);
+  }
+  const single = q.linkedOrderId?.trim();
+  return single ? [single] : [];
+}
 
 export function AdminQueriesPage() {
   const [queries, setQueries] = useState<AdminQuery[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const { confirmAction, dialogProps } = useConfirmDialog();
 
-  async function loadQueries() {
+  const loadQueries = useCallback(async () => {
     setError("");
     try {
       const list = await api<AdminQuery[]>(apiPaths.adminQueries);
@@ -42,11 +56,34 @@ export function AdminQueriesPage() {
     } catch (e) {
       setError((e as Error).message);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    loadQueries();
-  }, []);
+    void loadQueries();
+  }, [loadQueries]);
+
+  function requestDeleteQuery(row: AdminQuery) {
+    confirmAction(
+      {
+        title: "Delete query",
+        message: `Permanently delete query ${row.queryId}? Remarks and images on this query will be removed. This cannot be undone.`,
+        confirmLabel: "Delete query",
+        variant: "danger",
+      },
+      async () => {
+        setError("");
+        setDeletingId(row.queryId);
+        try {
+          await api(apiPaths.adminDeleteQuery(row.queryId), { method: "DELETE" });
+          await loadQueries();
+        } catch (e) {
+          setError((e as Error).message);
+        } finally {
+          setDeletingId(null);
+        }
+      },
+    );
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return queries;
@@ -80,6 +117,15 @@ export function AdminQueriesPage() {
           />
         </div>
         <div className="ml-auto flex flex-wrap gap-2 items-center">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={filtered.length === 0}
+            onClick={() => exportQueriesToExcel(filtered)}
+          >
+            Export Excel
+          </Button>
           <Button type="button" variant="secondary" size="sm" onClick={loadQueries}>
             Refresh
           </Button>
@@ -103,6 +149,7 @@ export function AdminQueriesPage() {
               <TableHead>Remarks</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeaderBand>
           <TableBody>
@@ -117,14 +164,21 @@ export function AdminQueriesPage() {
                 <TableCell title={q.createdByExecutiveId || undefined}>
                   {q.executiveUsername?.trim() ? q.executiveUsername : q.createdByExecutiveId || "—"}
                 </TableCell>
-                <TableCell>
-                  {q.linkedOrderId?.trim() ? (
-                    <Link
-                      to={`/admin/orders/${encodeURIComponent(q.linkedOrderId)}`}
-                      className="font-mono text-xs text-primary hover:underline"
-                    >
-                      {q.linkedOrderId}
-                    </Link>
+                <TableCell className="max-w-[200px]">
+                  {linkedOrderIdsForRow(q).length > 0 ? (
+                    <span className="flex flex-wrap gap-x-1.5 gap-y-0.5 font-mono text-xs">
+                      {linkedOrderIdsForRow(q).map((orderId, i) => (
+                        <span key={orderId}>
+                          {i > 0 ? <span className="text-muted-foreground">,</span> : null}
+                          <Link
+                            to={`/admin/orders/${encodeURIComponent(orderId)}`}
+                            className="text-primary hover:underline"
+                          >
+                            {orderId}
+                          </Link>
+                        </span>
+                      ))}
+                    </span>
                   ) : (
                     "—"
                   )}
@@ -134,11 +188,32 @@ export function AdminQueriesPage() {
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(q.createdAt)}</TableCell>
                 <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(q.updatedAt)}</TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                    title={
+                      q.linkedOrderId?.trim()
+                        ? "Delete linked order first"
+                        : "Delete query"
+                    }
+                    disabled={deletingId === q.queryId || linkedOrderIdsForRow(q).length > 0}
+                    onClick={() => requestDeleteQuery(q)}
+                    aria-label="Delete query"
+                  >
+                    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    </svg>
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                   {queries.length === 0 ? "No queries yet." : "No rows match your search."}
                 </TableCell>
               </TableRow>
@@ -150,6 +225,7 @@ export function AdminQueriesPage() {
           {search.trim() ? ` (of ${queries.length})` : ""}
         </p>
       </div>
+      <ConfirmDialog {...dialogProps} />
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { OrderAssetsPanel } from "@/components/orders/OrderAssetsPanel";
 import { RemarkTimeline, type RemarkEntry } from "@/components/remarks/RemarkTimeline";
 import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
-import { api } from "@/lib/api";
+import { api, apiBinaryGet } from "@/lib/api";
 import { apiPaths } from "@/lib/apiPaths";
 import {
   auditActionLabel,
@@ -11,7 +12,7 @@ import {
 } from "@/lib/auditLogDisplay";
 import { fetchAllAuditLogs, type AuditLogFilters, type AuditLogRow } from "@/lib/auditLogFilters";
 import { formatMoney, formatShortDateTime, formatTableDateTime } from "@/lib/formatDisplay";
-import { assetTypeLabel, fileLabelFromKey, type OrderAssetRow } from "@/lib/orderAssetLabels";
+import { fileLabelFromKey, type OrderAssetRow } from "@/lib/orderAssetLabels";
 import type { OrderListRow } from "@/lib/orderListTypes";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -107,6 +108,43 @@ export function AdminOrderDetailModal({
     if (!order?.lines?.length) return order?.frameSize?.trim() || "—";
     return order.lines.map((l) => `${l.frameSize} ×${l.quantity}`).join(", ");
   }, [order]);
+
+  const assetFilePath = useCallback(
+    (oid: string, assetId: string, disposition: "inline" | "attachment") =>
+      apiPaths.adminOrderAssetFile(oid, assetId, disposition),
+    [],
+  );
+
+  async function viewAsset(assetId: string, r2Key: string) {
+    const id = orderId.trim();
+    if (!id) return;
+    setError("");
+    try {
+      const blob = await apiBinaryGet(assetFilePath(id, assetId, "inline"));
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  async function downloadAsset(assetId: string, r2Key: string) {
+    const id = orderId.trim();
+    if (!id) return;
+    setError("");
+    try {
+      const blob = await apiBinaryGet(assetFilePath(id, assetId, "attachment"));
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileLabelFromKey(r2Key);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -271,25 +309,15 @@ export function AdminOrderDetailModal({
 
               <section>
                 <h3 className="text-sm font-semibold mb-3">Assets</h3>
-                {assets.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No files uploaded.</p>
-                ) : (
-                  <ul className="m-0 list-none p-0 text-sm space-y-1.5">
-                    {assets.map((a) => (
-                      <li key={a.id} className="flex flex-wrap gap-2 items-baseline">
-                        <span className="font-medium">{assetTypeLabel(a.assetType)}</span>
-                        <span className="text-muted-foreground truncate max-w-[240px]">
-                          {fileLabelFromKey(a.r2Key)}
-                        </span>
-                        {a.frameSize ? (
-                          <Badge variant="secondary" className="text-xs">
-                            {a.frameSize}
-                          </Badge>
-                        ) : null}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <OrderAssetsPanel
+                  orderId={orderId.trim()}
+                  assets={assets}
+                  filePath={assetFilePath}
+                  showFrameSizeColumn
+                  onView={viewAsset}
+                  onDownload={downloadAsset}
+                  emptyMessage="No files uploaded."
+                />
               </section>
             </>
           ) : null}

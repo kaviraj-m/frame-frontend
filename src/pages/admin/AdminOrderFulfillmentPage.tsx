@@ -36,6 +36,7 @@ import {
   validatePositiveNumber,
   validateRequired,
 } from "@/lib/fieldValidation";
+import { mergeOrderFromApi } from "@/lib/orderListTypes";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { Card } from "@/components/common/Card";
 import { Button } from "@/components/ui/button";
@@ -170,22 +171,13 @@ export function OrderFulfillmentPage({
     }
   }
 
-  function mergeOrderCustomer(prev: AdminOrderRow | null, next: AdminOrderRow): AdminOrderRow {
-    return {
-      ...next,
-      customerUsername: next.customerUsername ?? prev?.customerUsername,
-      customerPhoneNumber: next.customerPhoneNumber ?? prev?.customerPhoneNumber,
-      customerEmail: next.customerEmail ?? prev?.customerEmail,
-    };
-  }
-
   async function runAction(action: () => Promise<AdminOrderRow>, successMsg: string) {
     setBusy(true);
     setError("");
     setStatus("");
     try {
       const o = await action();
-      setOrder((prev) => mergeOrderCustomer(prev, o));
+      setOrder((prev) => mergeOrderFromApi(prev, o));
       setTrackingNumber(o.trackingNumber ?? "");
       setStatus(successMsg);
     } catch (e) {
@@ -219,7 +211,7 @@ export function OrderFulfillmentPage({
           }
         }
         if (lastOrder) {
-          setOrder((prev) => mergeOrderCustomer(prev, lastOrder!));
+          setOrder((prev) => mergeOrderFromApi(prev, lastOrder!));
           setTrackingNumber(lastOrder.trackingNumber ?? "");
         }
         setPrintImageFilesByLine({});
@@ -247,7 +239,7 @@ export function OrderFulfillmentPage({
         lastOrder = await apiUpload<AdminOrderRow>(portal.printImageUpload(orderId), fd);
       }
       if (lastOrder) {
-        setOrder((prev) => mergeOrderCustomer(prev, lastOrder!));
+        setOrder((prev) => mergeOrderFromApi(prev, lastOrder!));
         setTrackingNumber(lastOrder.trackingNumber ?? "");
       }
       setPrintImageFiles([]);
@@ -550,23 +542,6 @@ export function OrderFulfillmentPage({
                 />
               )}
               <div className="flex flex-wrap gap-2 mt-4">
-                {canWhatsAppPrint(order) ? (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className={cn(WHATSAPP_BTN)}
-                    disabled={busy || waBusy || !order.customerPhoneNumber?.trim()}
-                    title={
-                      order.customerPhoneNumber?.trim()
-                        ? "Open WhatsApp with the print draft"
-                        : "Customer phone missing on the linked query"
-                    }
-                    onClick={() => void openPrintWhatsApp()}
-                  >
-                    <ExternalLinkIcon />
-                    {waBusy ? "Opening…" : "WhatsApp"}
-                  </Button>
-                ) : null}
                 <Button
                   type="button"
                   disabled={busy || !canMarkPrintDone(order)}
@@ -689,6 +664,23 @@ export function OrderFulfillmentPage({
                 </p>
               ) : null}
               <div className="flex flex-wrap gap-2 mt-3">
+                {canWhatsAppPrint(order) ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className={cn(WHATSAPP_BTN)}
+                    disabled={busy || waBusy || !order.customerPhoneNumber?.trim()}
+                    title={
+                      order.customerPhoneNumber?.trim()
+                        ? "Open WhatsApp with the print draft"
+                        : "Customer phone missing on the linked query"
+                    }
+                    onClick={() => void openPrintWhatsApp()}
+                  >
+                    <ExternalLinkIcon />
+                    {waBusy ? "Opening…" : "WhatsApp"}
+                  </Button>
+                ) : null}
                 <Button
                   type="button"
                   disabled={busy || !canMarkFrameReady(order, assets)}

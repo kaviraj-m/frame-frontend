@@ -9,6 +9,7 @@ import { AdminOrdersProductionPage } from "../pages/admin/AdminOrdersProductionP
 import { AdminOrderPatchPage } from "../pages/admin/AdminOrderPatchPage";
 import { AdminOrderFulfillmentPage } from "../pages/admin/AdminOrderFulfillmentPage";
 import { AdminAttendanceReportPage } from "../pages/admin/AdminAttendanceReportPage";
+import { AdminUserAttendancePage } from "../pages/admin/AdminUserAttendancePage";
 import { AdminAuditLogPage } from "../pages/admin/AdminAuditLogPage";
 import { AdminAnalyticsPage } from "../pages/admin/AdminAnalyticsPage";
 import { AdminQueriesPage } from "../pages/admin/AdminQueriesPage";
@@ -29,5 +30,6 @@ export const adminNestedRoutes = [
   <Route key="adm-orders" path="orders" element={<AdminOrdersAllPage />} />,
   <Route key="adm-queries" path="queries" element={<AdminQueriesPage />} />,
   <Route key="adm-attendance-report" path="reports/attendance" element={<AdminAttendanceReportPage />} />,
+  <Route key="adm-attendance-user" path="reports/attendance/user" element={<AdminUserAttendancePage />} />,
   <Route key="adm-audit-log" path="audit-log" element={<AdminAuditLogPage />} />,
 ];

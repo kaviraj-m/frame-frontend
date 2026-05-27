@@ -8,6 +8,7 @@ import type { AdminUserRow } from "./users/adminUserTypes";
 import type { OrderListSummary, QueryListSummary } from "./users/adminUserPerformanceTypes";
 import { useAdminUserPerformance } from "./users/useAdminUserPerformance";
 import { useAdminUsersList } from "./users/useAdminUsersList";
+import { exportUserPerformanceToExcel } from "@/lib/exportUserPerformanceExcel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,8 +50,15 @@ function KpiCard({ label, value, hint }: { label: string; value: number; hint?: 
   );
 }
 
-function OrderMiniTable({ rows, timeField }: { rows: OrderListSummary[]; timeField: "createdAt" | "updatedAt" }) {
-  if (rows.length === 0) {
+function OrderMiniTable({
+  rows,
+  timeField,
+}: {
+  rows: OrderListSummary[] | null | undefined;
+  timeField: "createdAt" | "updatedAt";
+}) {
+  const list = rows ?? [];
+  if (list.length === 0) {
     return <p className="text-sm text-muted-foreground py-2">None on this day.</p>;
   }
   return (
@@ -66,7 +74,7 @@ function OrderMiniTable({ rows, timeField }: { rows: OrderListSummary[]; timeFie
           </TableRow>
         </TableHeaderBand>
         <TableBody>
-          {rows.map((o) => (
+          {list.map((o) => (
             <TableRow key={`${o.orderId}-${timeField}`}>
               <TableCell className="font-mono text-xs">{o.orderId}</TableCell>
               <TableCell>
@@ -92,8 +100,9 @@ function OrderMiniTable({ rows, timeField }: { rows: OrderListSummary[]; timeFie
   );
 }
 
-function QueryMiniTable({ rows }: { rows: QueryListSummary[] }) {
-  if (rows.length === 0) {
+function QueryMiniTable({ rows }: { rows: QueryListSummary[] | null | undefined }) {
+  const list = rows ?? [];
+  if (list.length === 0) {
     return <p className="text-sm text-muted-foreground py-2">None on this day.</p>;
   }
   return (
@@ -107,11 +116,11 @@ function QueryMiniTable({ rows }: { rows: QueryListSummary[] }) {
           </TableRow>
         </TableHeaderBand>
         <TableBody>
-          {rows.map((q) => (
+          {list.map((q) => (
             <TableRow key={q.queryId}>
               <TableCell className="font-mono text-xs">{q.queryId}</TableCell>
               <TableCell>
-                <span className="font-medium">{q.customerUsername}</span>
+                <span className="font-medium">{q.customerUsername || "—"}</span>
                 <span className="block text-xs text-muted-foreground">{q.customerPhoneNumber}</span>
               </TableCell>
               <TableCell className="text-sm tabular-nums">{formatISTDateTime(q.createdAt)}</TableCell>
@@ -273,15 +282,35 @@ export function AdminUserDetailPage() {
                 Last 90 days
               </Button>
             </div>
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void loadPerformance()}
-              disabled={loadingPerf}
-              className="ml-auto"
-            >
-              Refresh
-            </Button>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={loadingPerf || !performance}
+                onClick={() => {
+                  if (!performance || !summary) return;
+                  exportUserPerformanceToExcel({
+                    username: user.username,
+                    executiveId: user.executiveId,
+                    from: performance.from,
+                    to: performance.to,
+                    summary,
+                    daily,
+                  });
+                }}
+              >
+                Export Excel
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void loadPerformance()}
+                disabled={loadingPerf}
+              >
+                Refresh
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

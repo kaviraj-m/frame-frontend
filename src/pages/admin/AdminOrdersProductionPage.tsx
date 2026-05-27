@@ -13,7 +13,7 @@ import {
   sortFulfillmentOrders,
   type FulfillmentQueueFilter,
 } from "@/lib/adminFulfillment";
-import { isPostDesignApprovalStatus } from "@/lib/orderStatusGroups";
+import { isProductionDispatchQueueStatus } from "@/lib/orderStatusGroups";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { AdminOrdersTable } from "./AdminOrdersTable";
 import { Button } from "@/components/ui/button";
@@ -27,7 +27,6 @@ const FILTERS: { id: FulfillmentQueueFilter; label: string }[] = [
   { id: "frame_due", label: "Frame due" },
   { id: "awaiting_payment", label: "Awaiting payment" },
   { id: "ready_to_ship", label: "Ready to ship" },
-  { id: "done", label: "Done" },
 ];
 
 export function OrdersProductionPage({
@@ -46,7 +45,7 @@ export function OrdersProductionPage({
     setLoading(true);
     try {
       const all = await api<AdminOrderRow[]>(portal.productionOrdersApi);
-      const production = all.filter((o) => isPostDesignApprovalStatus(o.status));
+      const production = all.filter((o) => isProductionDispatchQueueStatus(o.status));
       setOrders(sortFulfillmentOrders(production));
     } catch (e) {
       setError((e as Error).message);
@@ -90,7 +89,6 @@ export function OrdersProductionPage({
       if (matchesFulfillmentFilter(o, "frame_due")) counts.frame_due++;
       if (matchesFulfillmentFilter(o, "awaiting_payment")) counts.awaiting_payment++;
       if (matchesFulfillmentFilter(o, "ready_to_ship")) counts.ready_to_ship++;
-      if (matchesFulfillmentFilter(o, "done")) counts.done++;
     }
     return counts;
   }, [orders]);
@@ -100,7 +98,7 @@ export function OrdersProductionPage({
       <PageHeader
         kicker={portal.kicker}
         title="Production & dispatch"
-        description="Orders after design approval — print, balance, courier, and completion."
+        description="Active production queue after design approval. Completed and returned orders are not listed here."
       />
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Production filters">

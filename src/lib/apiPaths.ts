@@ -116,6 +116,7 @@ export const apiPaths = {
   executiveOrderPrintWhatsApp: (orderId: string) =>
     `/api/executive/orders/${enc(orderId)}/whatsapp-print`,
   adminOrder: (orderId: string) => `/api/admin/orders/${enc(orderId)}`,
+  adminDeleteOrder: (orderId: string) => `/api/admin/orders/${enc(orderId)}`,
   adminOrderDetail: (orderId: string) => `/api/admin/orders/${enc(orderId)}/detail`,
   adminQueryRemarkImage: (queryId: string, remarkId: string) =>
     `/api/admin/queries/${enc(queryId)}/remarks/${enc(remarkId)}/file?disposition=inline`,
@@ -149,6 +150,10 @@ export const apiPaths = {
     `/api/admin/attendance/daily?date=${encodeURIComponent(date)}`,
   adminAttendanceUserDay: (userId: string, date: string) =>
     `/api/admin/attendance/users/${encodeURIComponent(userId)}/day?date=${encodeURIComponent(date)}`,
+  adminAttendanceUserRange: (userId: string, from: string, to: string) => {
+    const q = new URLSearchParams({ from, to });
+    return `/api/admin/attendance/users/${encodeURIComponent(userId)}/range?${q}`;
+  },
   adminAttendancePermissions: (date?: string, userId?: string) => {
     const q = new URLSearchParams();
     if (date) q.set("date", date);
@@ -161,4 +166,5 @@ export const apiPaths = {
     `/api/admin/attendance/permissions/${encodeURIComponent(permissionId)}`,
   adminAuditLogs: "/api/admin/audit-logs",
   adminQueries: "/api/admin/queries",
+  adminDeleteQuery: (queryId: string) => `/api/admin/queries/${enc(queryId)}`,
 } as const;

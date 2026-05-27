@@ -17,3 +17,10 @@ export const POST_DESIGN_APPROVAL_STATUSES = new Set<string>([
 export function isPostDesignApprovalStatus(status: string): boolean {
   return POST_DESIGN_APPROVAL_STATUSES.has(status);
 }
+
+/** Production & dispatch queue: post-approval but not terminal completed/returned. */
+export function isProductionDispatchQueueStatus(status: string): boolean {
+  if (!isPostDesignApprovalStatus(status)) return false;
+  const s = (status ?? "").toUpperCase();
+  return s !== "ORDER_COMPLETED" && s !== "AMOUNT_RETURNED";
+}
