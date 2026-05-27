@@ -16,6 +16,9 @@ export default defineConfig({
     // Cloudflare Tunnel / ngrok — host changes each session
     allowedHosts: [".trycloudflare.com", ".ngrok-free.app", ".ngrok.io", "localhost"],
   },
+  preview: {
+    allowedHosts: ["memorix-portal.kaspx.com", "localhost", "127.0.0.1"],
+  },
   test: {
     environment: "node",
     globals: true,
