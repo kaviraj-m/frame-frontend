@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export function AttendanceControls() {
-  const { status, error, hydrated, startBreak, endBreak, endDay } = useSmartAttendanceContext();
+  const { status, error, hydrated, startBreak, endBreak } = useSmartAttendanceContext();
 
   if (!hydrated) {
     return <p className="text-sm text-muted-foreground">Loading attendance…</p>;
@@ -25,9 +25,7 @@ export function AttendanceControls() {
         <p className="text-sm text-muted-foreground">
           <strong>Present</strong> — working on this site with the tab focused (app pings every 5
           minutes; if pings stop, the server ends your session as offline).{" "}
-          <strong>Idle</strong> — recorded automatically when you switch to another tab or app (saved on
-          your attendance timeline). <strong>Break</strong> — manual rest; use Break done
-          when you return.
+          <strong>Break</strong> — manual rest; use Break done when you return.
         </p>
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
@@ -40,9 +38,6 @@ export function AttendanceControls() {
             Break
           </Button>
         )}
-        <Button type="button" variant="outline" size="sm" onClick={() => void endDay()}>
-          End work day
-        </Button>
       </CardContent>
       {error ? (
         <Alert variant="destructive" className="mx-6 mb-4">

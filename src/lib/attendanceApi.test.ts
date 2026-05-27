@@ -10,8 +10,6 @@ describe("attendancePaths", () => {
     expect(p.end("att_1")).toBe("/api/executive/attendance/end/att_1");
     expect(p.break("att_1")).toBe("/api/executive/attendance/break/att_1");
     expect(p.endBreak("brk_1")).toBe("/api/executive/breaks/end/brk_1");
-    expect(p.idle("att_1")).toBe("/api/executive/attendance/idle/att_1");
-    expect(p.endIdle("idl_1")).toBe("/api/executive/idle/end/idl_1");
     expect(p.heartbeat).toBe("/api/executive/attendance/heartbeat");
   });
 

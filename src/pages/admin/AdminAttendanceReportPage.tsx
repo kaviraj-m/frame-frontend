@@ -28,9 +28,6 @@ function statusBadge(status: string) {
   if (status === "break") {
     return <Badge className="bg-amber-500/15 text-amber-300 border-amber-500/30">Break</Badge>;
   }
-  if (status === "idle") {
-    return <Badge className="bg-sky-500/15 text-sky-300 border-sky-500/30">Idle</Badge>;
-  }
   if (status === "permission") {
     return <Badge className="bg-violet-500/15 text-violet-300 border-violet-500/30">Permission</Badge>;
   }
@@ -175,9 +172,14 @@ export function AdminAttendanceReportPage() {
         <span className="breadcrumb-sep">/</span>
         <span>Attendance</span>
       </nav>
-      <div>
-        <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">Attendance report</h2>
-        <p className="text-sm text-muted-foreground mt-1">Times shown in IST (India).</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold">Attendance report</h2>
+          <p className="text-sm text-muted-foreground mt-1">Times shown in IST (India).</p>
+        </div>
+        <Button type="button" variant="secondary" size="sm" asChild>
+          <Link to="/admin/reports/attendance/user">User attendance detail</Link>
+        </Button>
       </div>
       <div className="flex flex-wrap items-end gap-4">
         <div className="space-y-2">
@@ -221,7 +223,7 @@ export function AdminAttendanceReportPage() {
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Present</TableHead>
               <TableHead className="text-right">Break</TableHead>
-              <TableHead className="text-right">Idle</TableHead>
+              <TableHead className="text-right">Offline</TableHead>
               <TableHead className="text-right">Timeline</TableHead>
             </TableRow>
           </TableHeaderBand>
@@ -235,16 +237,25 @@ export function AdminAttendanceReportPage() {
                   <TableCell>{statusBadge(r.status)}</TableCell>
                   <TableCell className="text-right text-sm">{formatSecondsAsHms(r.presentSeconds)}</TableCell>
                   <TableCell className="text-right text-sm">{formatSecondsAsHms(r.breakSeconds)}</TableCell>
-                  <TableCell className="text-right text-sm">{formatSecondsAsHms(r.idleSeconds)}</TableCell>
+                  <TableCell className="text-right text-sm">{formatSecondsAsHms(r.offlineSeconds ?? 0)}</TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => void loadUserDetail(r.userId)}
-                    >
-                      {expandedUserId === r.userId ? "Hide" : "View"} ({r.segmentCount})
-                    </Button>
+                    <div className="flex flex-wrap justify-end gap-1">
+                      <Button type="button" variant="ghost" size="sm" asChild>
+                        <Link
+                          to={`/admin/reports/attendance/user?userId=${encodeURIComponent(r.userId)}&from=${encodeURIComponent(date)}&to=${encodeURIComponent(date)}`}
+                        >
+                          View range
+                        </Link>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => void loadUserDetail(r.userId)}
+                      >
+                        {expandedUserId === r.userId ? "Hide" : "View"} ({r.segmentCount})
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
                 {expandedUserId === r.userId && (

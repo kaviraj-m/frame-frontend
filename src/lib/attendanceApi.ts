@@ -11,9 +11,7 @@ export function attendancePaths(prefix: AttendanceApiPrefix) {
       `${prefix}/attendance/my-day?date=${encodeURIComponent(date)}`,
     end: (attendanceId: string) => `${prefix}/attendance/end/${encodeURIComponent(attendanceId)}`,
     break: (attendanceId: string) => `${prefix}/attendance/break/${encodeURIComponent(attendanceId)}`,
-    idle: (attendanceId: string) => `${prefix}/attendance/idle/${encodeURIComponent(attendanceId)}`,
     endBreak: (breakId: string) => `${prefix}/breaks/end/${encodeURIComponent(breakId)}`,
-    endIdle: (idleId: string) => `${prefix}/idle/end/${encodeURIComponent(idleId)}`,
   };
 }
 

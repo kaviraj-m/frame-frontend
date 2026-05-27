@@ -19,7 +19,8 @@ export function AttendanceDayTimeline({ detail }: { detail: AttendanceDayDetail 
     <div className="space-y-3 py-2">
       <p className="text-xs text-muted-foreground">
         Times in IST (India) · Present {formatSecondsAsHms(detail.presentSeconds ?? 0)} · Break{" "}
-        {formatSecondsAsHms(detail.breakSeconds ?? 0)} · Idle {formatSecondsAsHms(detail.idleSeconds ?? 0)}
+        {formatSecondsAsHms(detail.breakSeconds ?? 0)} · Offline{" "}
+        {formatSecondsAsHms(detail.offlineSeconds ?? 0)}
       </p>
       <ul className="space-y-2">
         {segments.map((seg, i) => (
@@ -31,9 +32,7 @@ export function AttendanceDayTimeline({ detail }: { detail: AttendanceDayDetail 
                 ? "border-emerald-500/30 bg-emerald-500/5"
                 : seg.type === "break"
                   ? "border-amber-500/30 bg-amber-500/5"
-                  : seg.type === "idle"
-                    ? "border-sky-500/30 bg-sky-500/5"
-                    : "border-violet-500/30 bg-violet-500/5",
+                  : "border-violet-500/30 bg-violet-500/5",
             )}
           >
             <span className="font-mono text-xs tabular-nums">{segmentLabel(seg)}</span>
@@ -42,15 +41,10 @@ export function AttendanceDayTimeline({ detail }: { detail: AttendanceDayDetail 
                 ? "Present"
                 : seg.type === "break"
                   ? "Break"
-                  : seg.type === "idle"
-                    ? "Idle"
-                    : "Permission"}
+                  : "Permission"}
             </Badge>
             {seg.type === "break" && seg.source === "manual" ? (
               <span className="text-[0.65rem] text-muted-foreground">Manual</span>
-            ) : null}
-            {seg.type === "idle" ? (
-              <span className="text-[0.65rem] text-muted-foreground">Auto (tab/window away)</span>
             ) : null}
           </li>
         ))}

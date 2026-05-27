@@ -11,7 +11,6 @@ export type AttendanceSession = {
 export type AttendanceEndReason = "manual" | "tab_hidden" | "logout" | "page_leave";
 
 export type BreakSource = "manual";
-export type IdleSource = "tab_away";
 
 export type BreakSession = {
   id: string;
@@ -24,29 +23,20 @@ export type BreakSessionDetail = BreakSession & {
   source?: BreakSource;
 };
 
-export type IdleSession = {
-  id: string;
-  attendanceId: string;
-  source?: IdleSource;
-  startedAt: string;
-  endedAt?: string;
-};
-
 export type AttendanceCurrentPayload = {
   attendance: AttendanceSession | null;
   activeBreak: BreakSession | null;
-  activeIdle: IdleSession | null;
 };
 
 export type AttendanceApiPrefix = "/api/executive" | "/api/designer";
 
 export type AttendanceSegment = {
-  type: "present" | "break" | "idle" | "permission";
+  type: "present" | "break" | "permission";
   start: string;
   end: string;
   startLabel: string;
   endLabel: string;
-  source?: BreakSource | IdleSource;
+  source?: BreakSource;
 };
 
 export type AttendanceUserDaySummary = {
@@ -54,13 +44,13 @@ export type AttendanceUserDaySummary = {
   username: string;
   role: string;
   workdayStart?: string;
-  status: "present" | "break" | "idle" | "offline" | "permission";
+  status: "present" | "break" | "offline" | "permission";
   presentMinutes: number;
   breakMinutes: number;
-  idleMinutes: number;
+  offlineMinutes: number;
   presentSeconds: number;
   breakSeconds: number;
-  idleSeconds: number;
+  offlineSeconds: number;
   segmentCount: number;
 };
 
@@ -75,22 +65,63 @@ export type AttendancePermission = {
   createdAt: string;
 };
 
+export type UserAttendanceSummary = {
+  daysInRange: number;
+  daysWithActivity: number;
+  presentSeconds: number;
+  breakSeconds: number;
+  offlineSeconds: number;
+  presentMinutes: number;
+  breakMinutes: number;
+  offlineMinutes: number;
+};
+
+export type UserAttendanceDayRow = {
+  date: string;
+  userId: string;
+  username: string;
+  role: string;
+  workdayStart?: string;
+  status: "present" | "break" | "offline" | "permission";
+  presentMinutes: number;
+  breakMinutes: number;
+  offlineMinutes: number;
+  presentSeconds: number;
+  breakSeconds: number;
+  offlineSeconds: number;
+  segmentCount: number;
+};
+
+export type UserAttendanceRangeUser = {
+  id: string;
+  username: string;
+  role: string;
+  email?: string;
+};
+
+export type UserAttendanceRangeResponse = {
+  user: UserAttendanceRangeUser;
+  from: string;
+  to: string;
+  summary: UserAttendanceSummary;
+  daily: UserAttendanceDayRow[];
+};
+
 export type AttendanceDayDetail = {
   date: string;
   timezone: string;
   userId: string;
   username: string;
   role: string;
-  status: "present" | "break" | "idle" | "offline" | "permission";
+  status: "present" | "break" | "offline" | "permission";
   presentMinutes: number;
   breakMinutes: number;
-  idleMinutes: number;
+  offlineMinutes: number;
   presentSeconds: number;
   breakSeconds: number;
-  idleSeconds: number;
+  offlineSeconds: number;
   segments?: AttendanceSegment[] | null;
   sessions?: AttendanceSession[] | null;
   breaks?: BreakSessionDetail[] | null;
-  idles?: IdleSession[] | null;
   permissions?: AttendancePermission[] | null;
 };
