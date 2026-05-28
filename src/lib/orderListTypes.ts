@@ -22,6 +22,7 @@ export type OrderListRow = {
   trackingNumber?: string;
   createdAt?: string;
   updatedAt?: string;
+  createdByExecutiveId?: string;
 };
 
 /** Merge API order updates without dropping line items or customer fields omitted from the response. */

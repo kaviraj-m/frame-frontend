@@ -57,8 +57,20 @@ function KpiCard({ label, value, hint }: { label: string; value: string | number
   );
 }
 
-function dayHasActivity(row: { segmentCount: number; presentSeconds: number; breakSeconds: number; workdayStart?: string }) {
-  return row.segmentCount > 0 || row.presentSeconds > 0 || row.breakSeconds > 0 || Boolean(row.workdayStart);
+function dayHasActivity(row: {
+  segmentCount: number;
+  presentSeconds: number;
+  breakSeconds: number;
+  permissionSeconds?: number;
+  workdayStart?: string;
+}) {
+  return (
+    row.segmentCount > 0 ||
+    row.presentSeconds > 0 ||
+    row.breakSeconds > 0 ||
+    (row.permissionSeconds ?? 0) > 0 ||
+    Boolean(row.workdayStart)
+  );
 }
 
 export function AdminUserAttendancePage() {
@@ -218,12 +230,13 @@ export function AdminUserAttendancePage() {
             <span className="text-xs text-muted-foreground font-mono">{data.user.id}</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             <KpiCard label="Days in range" value={summary.daysInRange} />
             <KpiCard label="Days with activity" value={summary.daysWithActivity} />
             <KpiCard label="Present (total)" value={formatSecondsAsHms(summary.presentSeconds)} />
             <KpiCard label="Break (total)" value={formatSecondsAsHms(summary.breakSeconds)} />
             <KpiCard label="Offline (total)" value={formatSecondsAsHms(summary.offlineSeconds)} />
+            <KpiCard label="Permission (total)" value={formatSecondsAsHms(summary.permissionSeconds ?? 0)} />
           </div>
 
           <div>
@@ -241,6 +254,7 @@ export function AdminUserAttendancePage() {
                     <TableHead className="text-right">Present</TableHead>
                     <TableHead className="text-right">Break</TableHead>
                     <TableHead className="text-right">Offline</TableHead>
+                    <TableHead className="text-right">Permission</TableHead>
                     <TableHead className="text-right">Timeline</TableHead>
                   </TableRow>
                 </TableHeaderBand>
@@ -256,6 +270,7 @@ export function AdminUserAttendancePage() {
                           <TableCell className="text-right text-sm">{formatSecondsAsHms(row.presentSeconds)}</TableCell>
                           <TableCell className="text-right text-sm">{formatSecondsAsHms(row.breakSeconds)}</TableCell>
                           <TableCell className="text-right text-sm">{formatSecondsAsHms(row.offlineSeconds ?? 0)}</TableCell>
+                          <TableCell className="text-right text-sm">{formatSecondsAsHms(row.permissionSeconds ?? 0)}</TableCell>
                           <TableCell className="text-right">
                             <Button
                               type="button"
@@ -270,7 +285,7 @@ export function AdminUserAttendancePage() {
                         </TableRow>
                         {expandedDate === row.date ? (
                           <TableRow>
-                            <TableCell colSpan={7} className="bg-muted/20 p-4">
+                            <TableCell colSpan={8} className="bg-muted/20 p-4">
                               {dayLoading ? (
                                 <p className="text-sm text-muted-foreground">Loading timeline…</p>
                               ) : dayDetail ? (
@@ -284,7 +299,7 @@ export function AdminUserAttendancePage() {
                   })}
                   {!loading && daily.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                         No days in this range.
                       </TableCell>
                     </TableRow>

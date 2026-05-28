@@ -14,14 +14,17 @@ describe("exportUserAttendanceExcel", () => {
         presentSeconds: 3600,
         breakSeconds: 600,
         offlineSeconds: 120,
+        permissionSeconds: 1800,
         presentMinutes: 60,
         breakMinutes: 10,
         offlineMinutes: 2,
+        permissionMinutes: 30,
       },
       daily: [],
     });
     expect(summary.User).toBe("Subha");
     expect(summary["Present (total)"]).toBeTruthy();
+    expect(summary["Permission (total)"]).toBeTruthy();
 
     const daily = dailyToExportRows([
       {
@@ -33,13 +36,16 @@ describe("exportUserAttendanceExcel", () => {
         presentMinutes: 60,
         breakMinutes: 0,
         offlineMinutes: 0,
+        permissionMinutes: 0,
         presentSeconds: 3600,
         breakSeconds: 0,
         offlineSeconds: 0,
+        permissionSeconds: 0,
         segmentCount: 2,
       },
     ]);
     expect(daily[0]["Date (IST)"]).toBe("2026-05-20");
     expect(daily[0].Segments).toBe(2);
+    expect(daily[0].Permission).toBeTruthy();
   });
 });

@@ -13,6 +13,8 @@ const baseNavSections: ShellNavSection[] = [
       { to: "/executive/queries", label: "Queries", end: true },
       { to: "/executive/queries/new", label: "New query", end: true },
       { to: "/executive/orders", label: "Orders", end: true },
+      { to: "/executive/orders/all", label: "All orders", end: true },
+      { to: "/executive/queries/all", label: "All queries", end: true },
     ],
   },
   {

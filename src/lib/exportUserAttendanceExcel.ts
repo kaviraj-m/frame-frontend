@@ -21,6 +21,7 @@ export type UserAttendanceSummaryExportRow = {
   "Present (total)": string;
   "Break (total)": string;
   "Offline (total)": string;
+  "Permission (total)": string;
 };
 
 export type UserAttendanceDailyExportRow = {
@@ -30,6 +31,7 @@ export type UserAttendanceDailyExportRow = {
   Present: string;
   Break: string;
   Offline: string;
+  Permission: string;
   Segments: number;
 };
 
@@ -56,6 +58,7 @@ export function summaryToExportRow(input: UserAttendanceExportInput): UserAttend
     "Present (total)": formatSecondsAsHms(s.presentSeconds),
     "Break (total)": formatSecondsAsHms(s.breakSeconds),
     "Offline (total)": formatSecondsAsHms(s.offlineSeconds),
+    "Permission (total)": formatSecondsAsHms(s.permissionSeconds ?? 0),
   };
 }
 
@@ -67,6 +70,7 @@ export function dailyToExportRows(daily: UserAttendanceDayRow[]): UserAttendance
     Present: formatSecondsAsHms(row.presentSeconds ?? 0),
     Break: formatSecondsAsHms(row.breakSeconds ?? 0),
     Offline: formatSecondsAsHms(row.offlineSeconds ?? 0),
+    Permission: formatSecondsAsHms(row.permissionSeconds ?? 0),
     Segments: row.segmentCount,
   }));
 }
@@ -88,7 +92,7 @@ export function exportUserAttendanceToExcel(input: UserAttendanceExportInput, fi
     dailyRows.length > 0
       ? XLSX.utils.json_to_sheet(dailyRows)
       : XLSX.utils.aoa_to_sheet([
-          ["Date (IST)", "Status", "Started", "Present", "Break", "Offline", "Segments"],
+          ["Date (IST)", "Status", "Started", "Present", "Break", "Offline", "Permission", "Segments"],
         ]);
   XLSX.utils.book_append_sheet(workbook, dailySheet, "Daily breakdown");
 

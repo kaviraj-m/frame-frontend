@@ -15,11 +15,15 @@ export const apiPaths = {
   /** Active frame sizes and list prices (executive catalogue). */
   executivePricing: "/api/executive/pricing",
   executiveQueries: "/api/executive/queries",
+  /** All organisation queries (read-only). */
+  executiveQueriesAll: "/api/executive/all-queries",
   executiveQueryDetail: (queryId: string) => `/api/executive/queries/${enc(queryId)}`,
   executiveQueryRemarks: (queryId: string) => `/api/executive/queries/${enc(queryId)}/remarks`,
   executiveQueryRemarkImage: (queryId: string, remarkId: string) =>
     `/api/executive/queries/${enc(queryId)}/remarks/${enc(remarkId)}/file?disposition=inline`,
   executiveOrders: "/api/executive/orders",
+  /** All organisation orders (read-only). */
+  executiveOrdersAll: "/api/executive/all-orders",
   /** Multipart payment proof before confirm (returns `{ r2Key }`). */
   executiveUploads: "/api/executive/uploads",
   /** List assets for an order (GET). */

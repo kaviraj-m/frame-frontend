@@ -224,6 +224,7 @@ export function AdminAttendanceReportPage() {
               <TableHead className="text-right">Present</TableHead>
               <TableHead className="text-right">Break</TableHead>
               <TableHead className="text-right">Offline</TableHead>
+              <TableHead className="text-right">Permission</TableHead>
               <TableHead className="text-right">Timeline</TableHead>
             </TableRow>
           </TableHeaderBand>
@@ -238,6 +239,7 @@ export function AdminAttendanceReportPage() {
                   <TableCell className="text-right text-sm">{formatSecondsAsHms(r.presentSeconds)}</TableCell>
                   <TableCell className="text-right text-sm">{formatSecondsAsHms(r.breakSeconds)}</TableCell>
                   <TableCell className="text-right text-sm">{formatSecondsAsHms(r.offlineSeconds ?? 0)}</TableCell>
+                  <TableCell className="text-right text-sm">{formatSecondsAsHms(r.permissionSeconds ?? 0)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex flex-wrap justify-end gap-1">
                       <Button type="button" variant="ghost" size="sm" asChild>
@@ -260,7 +262,7 @@ export function AdminAttendanceReportPage() {
                 </TableRow>
                 {expandedUserId === r.userId && (
                   <TableRow key={`${r.userId}-detail`}>
-                    <TableCell colSpan={8} className="bg-muted/20">
+                    <TableCell colSpan={9} className="bg-muted/20">
                       {detailLoading ? (
                         <p className="text-sm text-muted-foreground py-2">Loading timeline…</p>
                       ) : detail ? (
@@ -273,7 +275,7 @@ export function AdminAttendanceReportPage() {
             ))}
             {!loading && filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   No users match this date or filter.
                 </TableCell>
               </TableRow>

@@ -4,6 +4,7 @@ import { attendancePaths } from "@/lib/attendanceApi";
 import { todayISTDateString } from "@/lib/attendanceIst";
 import type { AttendanceApiPrefix, AttendanceDayDetail } from "@/lib/attendanceTypes";
 import { AttendanceDayTimeline } from "@/components/attendance/AttendanceDayTimeline";
+import { PermissionSelfServicePanel } from "@/components/attendance/PermissionSelfServicePanel";
 import { AttendanceControls } from "@/components/AttendanceControls";
 import { useSmartAttendanceContext } from "@/context/SmartAttendanceContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -51,6 +52,12 @@ export function MyAttendanceDay({ apiPrefix }: { apiPrefix: AttendanceApiPrefix 
         </div>
       </div>
       <AttendanceControls />
+      <PermissionSelfServicePanel
+        apiPrefix={apiPrefix}
+        viewDate={date}
+        permissionsFromDay={detail !== null ? (detail.permissions ?? []) : undefined}
+        onSaved={() => void load()}
+      />
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
       {err ? (
         <Alert variant="destructive">

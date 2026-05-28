@@ -4,13 +4,14 @@ export type AttendanceSession = {
   role: string;
   clientIp: string;
   startedAt: string;
+  lastSeenAt?: string;
   endedAt?: string;
   endReason?: string;
 };
 
 export type AttendanceEndReason = "manual" | "tab_hidden" | "logout" | "page_leave";
 
-export type BreakSource = "manual";
+export type BreakSource = "manual" | "auto_away";
 
 export type BreakSession = {
   id: string;
@@ -31,12 +32,14 @@ export type AttendanceCurrentPayload = {
 export type AttendanceApiPrefix = "/api/executive" | "/api/designer";
 
 export type AttendanceSegment = {
-  type: "present" | "break" | "permission";
+  type: "present" | "break" | "permission" | "offline";
   start: string;
   end: string;
   startLabel: string;
   endLabel: string;
   source?: BreakSource;
+  /** Permission reason (from admin or self-apply note). */
+  note?: string;
 };
 
 export type AttendanceUserDaySummary = {
@@ -48,9 +51,11 @@ export type AttendanceUserDaySummary = {
   presentMinutes: number;
   breakMinutes: number;
   offlineMinutes: number;
+  permissionMinutes: number;
   presentSeconds: number;
   breakSeconds: number;
   offlineSeconds: number;
+  permissionSeconds: number;
   segmentCount: number;
 };
 
@@ -71,9 +76,11 @@ export type UserAttendanceSummary = {
   presentSeconds: number;
   breakSeconds: number;
   offlineSeconds: number;
+  permissionSeconds: number;
   presentMinutes: number;
   breakMinutes: number;
   offlineMinutes: number;
+  permissionMinutes: number;
 };
 
 export type UserAttendanceDayRow = {
@@ -86,9 +93,11 @@ export type UserAttendanceDayRow = {
   presentMinutes: number;
   breakMinutes: number;
   offlineMinutes: number;
+  permissionMinutes: number;
   presentSeconds: number;
   breakSeconds: number;
   offlineSeconds: number;
+  permissionSeconds: number;
   segmentCount: number;
 };
 
@@ -117,9 +126,11 @@ export type AttendanceDayDetail = {
   presentMinutes: number;
   breakMinutes: number;
   offlineMinutes: number;
+  permissionMinutes: number;
   presentSeconds: number;
   breakSeconds: number;
   offlineSeconds: number;
+  permissionSeconds: number;
   segments?: AttendanceSegment[] | null;
   sessions?: AttendanceSession[] | null;
   breaks?: BreakSessionDetail[] | null;

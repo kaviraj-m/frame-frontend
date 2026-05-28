@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { API_BASE } from "@/lib/api/config";
-import { attendancePaths, PRESENT_HEARTBEAT_MS } from "@/lib/attendanceApi";
+import {
+  attendancePaths,
+  PRESENT_HEARTBEAT_MS,
+  PRESENT_OFFLINE_AFTER_MS,
+} from "@/lib/attendanceApi";
 import { apiPaths } from "@/lib/apiPaths";
 import type {
   AttendanceApiPrefix,
@@ -13,10 +17,17 @@ import type {
 
 export type AttendanceTrackerStatus = "offline" | "present" | "break";
 
+function isSessionInactive(lastSeenAt: string | null): boolean {
+  if (!lastSeenAt) return false;
+  return Date.now() - new Date(lastSeenAt).getTime() > PRESENT_OFFLINE_AFTER_MS;
+}
+
 export type AttendanceTrackerState = {
   attendanceId: string;
   breakId: string;
   status: AttendanceTrackerStatus;
+  /** True when tab/app is away but session is still open (heartbeats paused). */
+  isAway: boolean;
   awaySecondsLeft: number | null;
   error: string;
   hydrated: boolean;
@@ -52,12 +63,16 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
   const paths = attendancePaths(apiPrefix);
   const [attendanceId, setAttendanceId] = useState("");
   const [breakId, setBreakId] = useState("");
+  const [isAway, setIsAway] = useState(false);
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+  const [inactiveTick, setInactiveTick] = useState(0);
   const [error, setError] = useState("");
   const [hydrated, setHydrated] = useState(false);
 
   const attendanceIdRef = useRef("");
   const breakIdRef = useRef("");
   const tabAwaySinceRef = useRef<number | null>(null);
+  const presenceSentForAwayRef = useRef(false);
   const handlersRef = useRef<TrackerHandlers>({
     onTabHidden: () => {},
     onTabVisible: () => {},
@@ -67,6 +82,7 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     if (!cur.attendance) {
       setAttendanceId("");
       setBreakId("");
+      setLastSeenAt(null);
       attendanceIdRef.current = "";
       breakIdRef.current = "";
       return;
@@ -75,6 +91,7 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     const brk = cur.activeBreak?.id ?? "";
     setAttendanceId(att);
     setBreakId(brk);
+    setLastSeenAt(cur.attendance.lastSeenAt ?? null);
     attendanceIdRef.current = att;
     breakIdRef.current = brk;
   }, []);
@@ -91,6 +108,8 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     applyCurrent(cur);
     if (!cur.attendance) {
       tabAwaySinceRef.current = null;
+      presenceSentForAwayRef.current = false;
+      setIsAway(false);
     }
     return cur;
   }, [applyCurrent, paths.heartbeat]);
@@ -144,6 +163,8 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
       const id = attendanceIdRef.current;
       if (!id) return;
       tabAwaySinceRef.current = null;
+      presenceSentForAwayRef.current = false;
+      setIsAway(false);
       await api(paths.end(id), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -179,53 +200,81 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     setBreakId("");
   }, [paths]);
 
-  const isAway = useCallback(() => {
-    return document.visibilityState === "hidden" || !document.hasFocus();
+  const isAwayNow = useCallback(() => {
+    if (typeof document === "undefined") return false;
+    if (document.visibilityState === "hidden") return true;
+    if (typeof document.hasFocus === "function" && !document.hasFocus()) return true;
+    return false;
   }, []);
 
-  const onTabHidden = useCallback(() => {
-    if (!attendanceIdRef.current || breakIdRef.current) return;
+  const markAwayLocal = useCallback(() => {
+    if (!attendanceIdRef.current) return;
     if (tabAwaySinceRef.current == null) {
       tabAwaySinceRef.current = Date.now();
     }
-    void recordPresence("tab_hidden");
-  }, [recordPresence]);
+    setIsAway(true);
+  }, []);
 
-  const onTabVisible = useCallback(async () => {
+  const onTabHidden = useCallback(async () => {
     if (!attendanceIdRef.current) return;
-    tabAwaySinceRef.current = null;
-    void recordPresence("tab_visible");
+    markAwayLocal();
+    if (presenceSentForAwayRef.current) return;
+    presenceSentForAwayRef.current = true;
     try {
-      await sendHeartbeat();
+      await recordPresence("tab_hidden");
       setError("");
     } catch (e) {
       setError((e as Error).message);
     }
-  }, [recordPresence, sendHeartbeat]);
+  }, [markAwayLocal, recordPresence]);
+
+  const onTabVisible = useCallback(async () => {
+    if (!attendanceIdRef.current) return;
+    tabAwaySinceRef.current = null;
+    presenceSentForAwayRef.current = false;
+    setIsAway(false);
+    try {
+      await recordPresence("tab_visible");
+      const cur = await syncFromServer();
+      applyCurrent(cur);
+      if (cur.attendance && !cur.activeBreak) {
+        await sendHeartbeat();
+      }
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }, [applyCurrent, recordPresence, sendHeartbeat, syncFromServer]);
 
   handlersRef.current = { onTabHidden, onTabVisible };
 
   useEffect(() => {
     if (!attendanceId || !hydrated) return;
 
-    void sendHeartbeat().catch((e) => setError((e as Error).message));
+    if (!isAwayNow()) {
+      void sendHeartbeat().catch((e) => setError((e as Error).message));
+    } else {
+      void onTabHidden();
+    }
 
     const heartbeatTimer = window.setInterval(() => {
-      if (!attendanceIdRef.current || isAway()) return;
+      if (!attendanceIdRef.current) return;
+      if (isAwayNow()) return;
+      if (breakIdRef.current) return;
       void sendHeartbeat().catch((e) => setError((e as Error).message));
     }, PRESENT_HEARTBEAT_MS);
 
     return () => {
       window.clearInterval(heartbeatTimer);
     };
-  }, [attendanceId, hydrated, isAway, sendHeartbeat]);
+  }, [attendanceId, hydrated, isAwayNow, onTabHidden, sendHeartbeat]);
 
   useEffect(() => {
     if (!attendanceId || !hydrated) return;
 
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
-        handlersRef.current.onTabHidden();
+        void handlersRef.current.onTabHidden();
       } else {
         void handlersRef.current.onTabVisible();
       }
@@ -233,13 +282,13 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
 
     const onBlur = () => {
       window.setTimeout(() => {
-        if (!attendanceIdRef.current || breakIdRef.current) return;
-        if (isAway()) handlersRef.current.onTabHidden();
-      }, 200);
+        if (!attendanceIdRef.current) return;
+        if (isAwayNow()) void handlersRef.current.onTabHidden();
+      }, 100);
     };
 
     const onFocus = () => {
-      if (!isAway()) {
+      if (!isAwayNow()) {
         void handlersRef.current.onTabVisible();
       }
     };
@@ -248,18 +297,23 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     window.addEventListener("blur", onBlur);
     window.addEventListener("focus", onFocus);
 
-    if (isAway()) {
-      handlersRef.current.onTabHidden();
+    if (isAwayNow()) {
+      void handlersRef.current.onTabHidden();
+    } else {
+      setIsAway(false);
     }
 
     const watchdog = window.setInterval(() => {
-      if (!attendanceIdRef.current || breakIdRef.current) return;
-      if (!isAway()) return;
-      if (tabAwaySinceRef.current == null) {
-        tabAwaySinceRef.current = Date.now();
+      if (!attendanceIdRef.current) return;
+      if (!isAwayNow()) {
+        if (tabAwaySinceRef.current != null) {
+          tabAwaySinceRef.current = null;
+          setIsAway(false);
+        }
+        return;
       }
-      handlersRef.current.onTabHidden();
-    }, 2000);
+      markAwayLocal();
+    }, 1500);
 
     const onBeforeUnload = () => {
       const id = attendanceIdRef.current;
@@ -275,7 +329,15 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
       window.removeEventListener("beforeunload", onBeforeUnload);
       window.clearInterval(watchdog);
     };
-  }, [attendanceId, hydrated, isAway, paths]);
+  }, [attendanceId, hydrated, isAwayNow, markAwayLocal, paths]);
+
+  useEffect(() => {
+    if (!attendanceId) return;
+    const timer = window.setInterval(() => {
+      setInactiveTick((n) => n + 1);
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [attendanceId, lastSeenAt]);
 
   async function startBreak() {
     try {
@@ -301,9 +363,12 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     }
   }
 
+  void inactiveTick;
+
   let status: AttendanceTrackerStatus = "offline";
   if (attendanceId) {
     if (breakId) status = "break";
+    else if (isSessionInactive(lastSeenAt)) status = "offline";
     else status = "present";
   }
 
@@ -311,6 +376,7 @@ export function useAttendanceTracker(apiPrefix: AttendanceApiPrefix): Attendance
     attendanceId,
     breakId,
     status,
+    isAway,
     awaySecondsLeft: null,
     error,
     hydrated,

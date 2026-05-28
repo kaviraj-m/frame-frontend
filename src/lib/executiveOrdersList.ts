@@ -147,7 +147,8 @@ export function orderMatchesSearch(o: OrderListRow, query: string): boolean {
     (o.status ?? "").toLowerCase().includes(q) ||
     uiLabel.includes(q) ||
     (o.frameSize ?? "").toLowerCase().includes(q) ||
-    (o.paymentMode ?? "").toLowerCase().includes(q)
+    (o.paymentMode ?? "").toLowerCase().includes(q) ||
+    (o.createdByExecutiveId ?? "").toLowerCase().includes(q)
   );
 }
 
