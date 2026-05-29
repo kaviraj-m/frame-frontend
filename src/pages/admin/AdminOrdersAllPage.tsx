@@ -37,6 +37,7 @@ import {
   orderRemark,
   type FrameworksUiStatus,
 } from "./frameworksOrdersUtils";
+import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 
 function IconPlus() {
   return (
@@ -120,7 +121,7 @@ function UserPanel({
   ];
 
   return (
-    <aside className="w-full shrink-0 bg-card border border-border rounded-lg flex flex-col overflow-hidden shadow-sm xl:w-[300px] xl:max-h-[min(65vh,880px)] xl:sticky xl:top-4">
+    <aside className="w-full shrink-0 rounded-lg border border-border bg-card shadow-sm xl:sticky xl:top-4 xl:w-[300px] xl:max-h-[min(65vh,880px)]">
       <div className="relative p-5 pb-4 border-b border-border text-center">
         <Button
           type="button"
@@ -292,10 +293,10 @@ export function AdminOrdersAllPage() {
         </Alert>
       ) : null}
 
-      <div className="flex min-w-0 flex-col gap-4 min-h-[min(65vh,880px)] xl:flex-row xl:items-start">
+      <div className="flex min-w-0 flex-col gap-4 xl:flex-row xl:items-start">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2.5 mb-4">
-            <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+          <div className="mb-4 flex flex-wrap items-center gap-2.5">
+            <div className={RESPONSIVE_SEARCH_WRAP}>
               <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
                 <DataBoardSearchIcon />
               </span>
@@ -318,7 +319,7 @@ export function AdminOrdersAllPage() {
                 {f === "all" ? "All" : f}
               </Button>
             ))}
-            <div className="ml-auto flex flex-wrap gap-2 items-center">
+            <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
               <Button
                 type="button"
                 variant="secondary"
@@ -341,8 +342,8 @@ export function AdminOrdersAllPage() {
             <OrderRowAgeLegend />
           </div>
 
-          <div className="overflow-auto w-full">
-            <Table>
+          <div className="w-full">
+            <Table stickyFirstColumn>
               <TableHeaderBand>
                 <TableRow>
                   <TableHead>Order ID</TableHead>

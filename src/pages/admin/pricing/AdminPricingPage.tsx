@@ -19,6 +19,7 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
+import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 
 function displayPrice(n: number | undefined | null): string {
   if (n == null || Number.isNaN(n)) return "—";
@@ -72,8 +73,8 @@ export function AdminPricingPage() {
       <p className="text-sm text-muted-foreground mb-3">
         Set online and cash full prices per frame size (e.g. 12x18). Executives choose payment mode first, then frame size uses the matching catalogue price.
       </p>
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -85,7 +86,7 @@ export function AdminPricingPage() {
             aria-label="Search pricing"
           />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2 items-center">
+        <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
           <Button type="button" size="sm" onClick={openCreate}>
             New frame size
           </Button>
@@ -105,8 +106,8 @@ export function AdminPricingPage() {
         </Alert>
       )}
 
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Frame size</TableHead>

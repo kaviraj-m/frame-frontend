@@ -35,6 +35,12 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_BTN_COMPACT } from "@/lib/whatsappButtonStyles";
+import {
+  RESPONSIVE_DATE_INPUT,
+  RESPONSIVE_FILTER_SELECT,
+  RESPONSIVE_SEARCH_WRAP,
+  RESPONSIVE_TOOLBAR_ACTIONS,
+} from "@/lib/responsive";
 
 const STATUS_FILTER_ALL = "all";
 
@@ -49,8 +55,7 @@ const CREATED_FILTERS: { id: CreatedFilterPreset; label: string }[] = [
 
 const EMPTY_DATE_RANGE: CreatedDateRange = { from: "", to: "" };
 
-const filterSelectClass =
-  "h-10 rounded-md border border-input bg-background px-3 text-sm min-w-[140px]";
+const filterSelectClass = RESPONSIVE_FILTER_SELECT;
 
 export function ExecutiveOrdersListPage() {
   const [orders, setOrders] = useState<OrderListRow[]>([]);
@@ -144,8 +149,8 @@ export function ExecutiveOrdersListPage() {
 
   return (
     <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -157,7 +162,7 @@ export function ExecutiveOrdersListPage() {
             aria-label="Search orders"
           />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2 items-center">
+        <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
           <Button
             type="button"
             variant="secondary"
@@ -173,8 +178,8 @@ export function ExecutiveOrdersListPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 mb-3">
-        <label className="flex flex-col gap-1 min-w-0">
+      <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">Status</span>
           <select
             className={filterSelectClass}
@@ -189,7 +194,7 @@ export function ExecutiveOrdersListPage() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">Created (IST)</span>
           <select
             className={filterSelectClass}
@@ -206,21 +211,21 @@ export function ExecutiveOrdersListPage() {
         </label>
         {createdPreset === "custom" ? (
           <>
-            <label className="flex flex-col gap-1 min-w-0">
+            <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs text-muted-foreground">From</span>
               <Input
                 type="date"
-                className="w-auto min-w-[140px] [color-scheme:dark]"
+                className={RESPONSIVE_DATE_INPUT}
                 value={dateRange.from}
                 onChange={(e) => setDateRange((p) => ({ ...p, from: e.target.value }))}
                 aria-label="Created from date"
               />
             </label>
-            <label className="flex flex-col gap-1 min-w-0">
+            <label className="flex min-w-0 flex-col gap-1">
               <span className="text-xs text-muted-foreground">To</span>
               <Input
                 type="date"
-                className="w-auto min-w-[140px] [color-scheme:dark]"
+                className={RESPONSIVE_DATE_INPUT}
                 value={dateRange.to}
                 onChange={(e) => setDateRange((p) => ({ ...p, to: e.target.value }))}
                 aria-label="Created to date"
@@ -228,7 +233,7 @@ export function ExecutiveOrdersListPage() {
             </label>
           </>
         ) : null}
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">Frame</span>
           <select
             className={filterSelectClass}
@@ -244,7 +249,7 @@ export function ExecutiveOrdersListPage() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">Pay mode</span>
           <select
             className={filterSelectClass}
@@ -275,8 +280,8 @@ export function ExecutiveOrdersListPage() {
       <div className="mb-3 px-0.5">
         <OrderRowAgeLegend />
       </div>
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Order</TableHead>

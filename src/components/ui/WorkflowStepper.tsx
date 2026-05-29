@@ -13,7 +13,7 @@ export function WorkflowStepper({
 }) {
   return (
     <div
-      className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+      className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4"
       aria-label={ariaLabel}
     >
       {steps.map((step) => {

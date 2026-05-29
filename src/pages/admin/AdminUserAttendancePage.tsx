@@ -22,6 +22,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import {
+  RESPONSIVE_FIXED_INPUT_180,
+  RESPONSIVE_FIXED_INPUT_220,
+} from "@/lib/responsive";
 
 function statusBadge(status: string) {
   if (status === "present") {
@@ -49,7 +53,7 @@ function formatWorkdayStart(iso?: string): string {
 
 function KpiCard({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <Card className="min-w-[140px] flex-1">
+    <Card className="min-w-0 flex-1">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
@@ -146,7 +150,10 @@ export function AdminUserAttendancePage() {
           <Label htmlFor="att-user">User</Label>
           <select
             id="att-user"
-            className="flex h-9 w-[220px] rounded-md border border-input bg-background px-3 text-sm"
+            className={cn(
+              "flex h-9 rounded-md border border-input bg-background px-3 text-sm",
+              RESPONSIVE_FIXED_INPUT_220,
+            )}
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
             disabled={loadingUsers}
@@ -166,7 +173,7 @@ export function AdminUserAttendancePage() {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="w-[180px]"
+            className={RESPONSIVE_FIXED_INPUT_180}
           />
         </div>
         <div className="space-y-2">
@@ -176,7 +183,7 @@ export function AdminUserAttendancePage() {
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="w-[180px]"
+            className={RESPONSIVE_FIXED_INPUT_180}
           />
         </div>
         <div className="flex flex-wrap gap-2 pb-0.5">
@@ -244,8 +251,8 @@ export function AdminUserAttendancePage() {
             <p className="text-sm text-muted-foreground mb-3">
               {data.from} — {data.to}. Expand a day for timeline detail.
             </p>
-            <div className="overflow-auto w-full">
-              <Table>
+            <div className="w-full">
+              <Table stickyFirstColumn>
                 <TableHeaderBand>
                   <TableRow>
                     <TableHead>Date (IST)</TableHead>

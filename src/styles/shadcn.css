@@ -42,7 +42,7 @@
   }
 
   body {
-    @apply h-full overflow-hidden bg-background font-sans text-foreground;
+    @apply h-full bg-background font-sans text-foreground;
     font-family: var(--font-sans);
   }
 

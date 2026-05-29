@@ -264,8 +264,8 @@ export function ExecutiveOrderAssetsPage() {
         <p className="text-sm text-muted-foreground mb-4">
           Framing images from confirm order show as &quot;Customer image (frame)&quot; (there may be several). Source uploads show as &quot;Source photo (print)&quot;.
         </p>
-        <div className="overflow-auto w-full">
-          <Table>
+        <div className="w-full">
+          <Table stickyFirstColumn>
             <TableHeaderBand>
               <TableRow>
                 <TableHead>Type</TableHead>
@@ -281,7 +281,7 @@ export function ExecutiveOrderAssetsPage() {
                   <TableCell className="font-mono text-xs">{a.r2Key}</TableCell>
                   <TableCell className="whitespace-nowrap">{formatShortDateTime(a.createdAt)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex flex-wrap gap-2 justify-end">
+                    <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
                       <Button type="button" variant="ghost" size="sm" onClick={() => viewAsset(a.id, a.r2Key)}>
                         View
                       </Button>

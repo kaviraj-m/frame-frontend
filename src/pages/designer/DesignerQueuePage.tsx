@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { RESPONSIVE_SEARCH_WRAP } from "@/lib/responsive";
 
 const FILTERS: { id: DesignerQueueFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -117,8 +118,8 @@ export function DesignerQueuePage() {
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 mb-4">
-          <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+        <div className="mb-4 flex flex-wrap items-center gap-2.5">
+          <div className={RESPONSIVE_SEARCH_WRAP}>
             <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
               <DataBoardSearchIcon />
             </span>
@@ -148,8 +149,8 @@ export function DesignerQueuePage() {
             Loading queue…
           </p>
         ) : (
-          <div className="overflow-auto w-full">
-            <Table>
+          <div className="w-full">
+            <Table stickyFirstColumn>
               <TableHeaderBand>
                 <TableRow>
                   <TableHead>Order</TableHead>

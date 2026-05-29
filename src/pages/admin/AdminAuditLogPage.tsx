@@ -23,6 +23,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  RESPONSIVE_DATE_INPUT,
+  RESPONSIVE_FILTER_SELECT,
+  RESPONSIVE_SEARCH_WRAP,
+  RESPONSIVE_TOOLBAR_ACTIONS,
+} from "@/lib/responsive";
+import {
   AuditEntryDetail,
   auditActionLabel,
   auditActionOptions,
@@ -31,8 +37,7 @@ import {
 
 const PAGE_SIZE = 50;
 
-const filterSelectClass =
-  "h-10 rounded-md border border-input bg-background px-3 text-sm min-w-[140px]";
+const filterSelectClass = RESPONSIVE_FILTER_SELECT;
 
 const EMPTY_FILTERS: AuditLogFilters = {
   search: "",
@@ -157,8 +162,8 @@ export function AdminAuditLogPage() {
         Who changed what on orders and customer queries.
       </p>
 
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -172,7 +177,7 @@ export function AdminAuditLogPage() {
             aria-label="Search audit log"
           />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2 items-center">
+        <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
           <Button
             type="button"
             variant="secondary"
@@ -194,8 +199,8 @@ export function AdminAuditLogPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3 mb-3">
-        <label className="flex flex-col gap-1 min-w-0">
+      <div className="mb-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">Entity</span>
           <select
             className={filterSelectClass}
@@ -208,10 +213,10 @@ export function AdminAuditLogPage() {
             <option value="query">Queries</option>
           </select>
         </label>
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">ID</span>
           <Input
-            className="font-mono text-xs min-w-[140px]"
+            className="font-mono text-xs"
             type="text"
             value={entityId}
             onChange={(e) => setEntityId(e.target.value)}
@@ -220,11 +225,10 @@ export function AdminAuditLogPage() {
             aria-label="Entity ID"
           />
         </label>
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">Action</span>
           <select
             className={filterSelectClass}
-            style={{ minWidth: 180 }}
             value={action}
             onChange={(e) => setAction(e.target.value)}
             aria-label="Action"
@@ -237,21 +241,21 @@ export function AdminAuditLogPage() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">From</span>
           <Input
             type="date"
-            className="w-auto min-w-[140px] [color-scheme:dark]"
+            className={RESPONSIVE_DATE_INPUT}
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             aria-label="From date"
           />
         </label>
-        <label className="flex flex-col gap-1 min-w-0">
+        <label className="flex min-w-0 flex-col gap-1">
           <span className="text-xs text-muted-foreground">To</span>
           <Input
             type="date"
-            className="w-auto min-w-[140px] [color-scheme:dark]"
+            className={RESPONSIVE_DATE_INPUT}
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             aria-label="To date"
@@ -288,8 +292,8 @@ export function AdminAuditLogPage() {
         </Alert>
       )}
 
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Time</TableHead>

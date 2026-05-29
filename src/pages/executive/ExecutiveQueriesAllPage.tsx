@@ -15,6 +15,7 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
+import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 
 type OrgQuery = {
   queryId: string;
@@ -81,8 +82,8 @@ export function ExecutiveQueriesAllPage() {
           orders, use <strong>Queries</strong> for your own queries.
         </AlertDescription>
       </Alert>
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -94,7 +95,7 @@ export function ExecutiveQueriesAllPage() {
             aria-label="Search all queries"
           />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2 items-center">
+        <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
           <Button
             type="button"
             variant="secondary"
@@ -114,8 +115,8 @@ export function ExecutiveQueriesAllPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Query</TableHead>

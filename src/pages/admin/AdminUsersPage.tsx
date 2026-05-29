@@ -21,6 +21,7 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
+import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 
 export function AdminUsersPage() {
   const {
@@ -96,8 +97,8 @@ export function AdminUsersPage() {
         title="User management"
         description="Create accounts, manage access, reset passwords, and remove users. Sign-in accepts email or username."
       />
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -109,7 +110,7 @@ export function AdminUsersPage() {
             aria-label="Search users"
           />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2 items-center">
+        <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
           <Button type="button" size="sm" onClick={openCreate}>
             Add user
           </Button>
@@ -137,8 +138,8 @@ export function AdminUsersPage() {
           <AlertDescription>{err}</AlertDescription>
         </Alert>
       )}
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Username</TableHead>

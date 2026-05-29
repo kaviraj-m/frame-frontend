@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { RESPONSIVE_FIXED_INPUT_180 } from "@/lib/responsive";
 
 const ATTENDANCE_TIMEZONE = "Asia/Kolkata";
 
@@ -42,7 +43,7 @@ function formatISTDateTime(iso?: string): string {
 
 function KpiCard({ label, value, hint }: { label: string; value: number; hint?: string }) {
   return (
-    <Card className="min-w-[140px] flex-1">
+    <Card className="min-w-0 flex-1">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums text-foreground">{value}</p>
       {hint ? <p className="mt-1 text-xs text-muted-foreground">{hint}</p> : null}
@@ -62,8 +63,8 @@ function OrderMiniTable({
     return <p className="text-sm text-muted-foreground py-2">None on this day.</p>;
   }
   return (
-    <div className="overflow-auto">
-      <Table>
+    <div className="w-full">
+      <Table stickyFirstColumn>
         <TableHeaderBand>
           <TableRow>
             <TableHead>Order</TableHead>
@@ -106,8 +107,8 @@ function QueryMiniTable({ rows }: { rows: QueryListSummary[] | null | undefined 
     return <p className="text-sm text-muted-foreground py-2">None on this day.</p>;
   }
   return (
-    <div className="overflow-auto">
-      <Table>
+    <div className="w-full">
+      <Table stickyFirstColumn>
         <TableHeaderBand>
           <TableRow>
             <TableHead>Query</TableHead>
@@ -258,7 +259,7 @@ export function AdminUserDetailPage() {
                 type="date"
                 value={from}
                 onChange={(e) => setFrom(e.target.value)}
-                className="w-[180px]"
+                className={RESPONSIVE_FIXED_INPUT_180}
               />
             </div>
             <div className="space-y-2">
@@ -268,7 +269,7 @@ export function AdminUserDetailPage() {
                 type="date"
                 value={to}
                 onChange={(e) => setTo(e.target.value)}
-                className="w-[180px]"
+                className={RESPONSIVE_FIXED_INPUT_180}
               />
             </div>
             <div className="flex flex-wrap gap-2 pb-0.5">
@@ -325,8 +326,8 @@ export function AdminUserDetailPage() {
             <p className="text-sm text-muted-foreground mb-3">
               {performance?.from} — {performance?.to}. Expand a day for order and query details.
             </p>
-            <div className="overflow-auto w-full">
-              <Table>
+            <div className="w-full">
+              <Table stickyFirstColumn>
                 <TableHeaderBand>
                   <TableRow>
                     <TableHead>Date (IST)</TableHead>

@@ -40,8 +40,8 @@ export function AdminOrdersTable({
       <div className="mb-3 px-0.5">
         <OrderRowAgeLegend />
       </div>
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Order</TableHead>

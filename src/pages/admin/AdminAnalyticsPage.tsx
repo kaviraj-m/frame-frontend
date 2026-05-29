@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { RESPONSIVE_FIXED_INPUT_180 } from "@/lib/responsive";
 
 function formatConversion(pct: number): string {
   if (!Number.isFinite(pct) || pct === 0) return "—";
@@ -66,7 +67,7 @@ export function AdminAnalyticsPage() {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="w-[180px]"
+            className={RESPONSIVE_FIXED_INPUT_180}
           />
         </div>
         <div className="space-y-2">
@@ -76,7 +77,7 @@ export function AdminAnalyticsPage() {
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="w-[180px]"
+            className={RESPONSIVE_FIXED_INPUT_180}
           />
         </div>
         <div className="flex flex-wrap gap-2 pb-0.5">
@@ -144,8 +145,8 @@ export function AdminAnalyticsPage() {
         <p className="text-sm text-muted-foreground mb-3">
           {data ? `${data.from} — ${data.to}` : "—"}
         </p>
-        <div className="overflow-auto w-full">
-          <Table>
+        <div className="w-full">
+          <Table stickyFirstColumn>
             <TableHeaderBand>
               <TableRow>
                 <TableHead>Date (IST)</TableHead>
@@ -261,8 +262,8 @@ export function AdminAnalyticsPage() {
         <p className="text-sm text-muted-foreground mb-3">
           Top performers in range by orders completed. Click a name for day-wise detail.
         </p>
-        <div className="overflow-auto w-full">
-          <Table>
+        <div className="w-full">
+          <Table stickyFirstColumn>
             <TableHeaderBand>
               <TableRow>
                 <TableHead className="w-12">#</TableHead>

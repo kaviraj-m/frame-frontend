@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 
 const FILTERS: { id: FulfillmentQueueFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -121,8 +122,8 @@ export function OrdersProductionPage({
       </div>
 
       <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
-        <div className="flex flex-wrap items-center gap-2.5 mb-4">
-          <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+        <div className="mb-4 flex flex-wrap items-center gap-2.5">
+          <div className={RESPONSIVE_SEARCH_WRAP}>
             <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
               <DataBoardSearchIcon />
             </span>
@@ -134,7 +135,7 @@ export function OrdersProductionPage({
               aria-label="Search orders"
             />
           </div>
-          <div className="ml-auto flex flex-wrap gap-2 items-center">
+          <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
             <Button type="button" variant="secondary" size="sm" onClick={refresh} disabled={loading}>
               Refresh
             </Button>

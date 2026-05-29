@@ -20,6 +20,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import {
+  RESPONSIVE_FIXED_INPUT_180,
+  RESPONSIVE_FIXED_INPUT_220,
+  RESPONSIVE_SEARCH_WRAP,
+} from "@/lib/responsive";
 
 function statusBadge(status: string) {
   if (status === "present") {
@@ -189,10 +194,10 @@ export function AdminAttendanceReportPage() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-[180px]"
+            className={RESPONSIVE_FIXED_INPUT_180}
           />
         </div>
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -213,8 +218,8 @@ export function AdminAttendanceReportPage() {
           <AlertDescription>{err}</AlertDescription>
         </Alert>
       )}
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>User</TableHead>
@@ -300,7 +305,10 @@ export function AdminAttendanceReportPage() {
             <Label htmlFor="perm-user">User</Label>
             <select
               id="perm-user"
-              className="flex h-9 w-[200px] rounded-md border border-input bg-background px-3 text-sm"
+              className={cn(
+                "flex h-9 rounded-md border border-input bg-background px-3 text-sm",
+                RESPONSIVE_FIXED_INPUT_220,
+              )}
               value={permUserId}
               onChange={(e) => setPermUserId(e.target.value)}
             >
@@ -320,7 +328,7 @@ export function AdminAttendanceReportPage() {
             <Label htmlFor="perm-end">End (IST)</Label>
             <Input id="perm-end" type="time" value={permEnd} onChange={(e) => setPermEnd(e.target.value)} />
           </div>
-          <div className="space-y-2 flex-1 min-w-[200px]">
+          <div className="min-w-0 flex-1 space-y-2">
             <Label htmlFor="perm-note">Note</Label>
             <Input id="perm-note" value={permNote} onChange={(e) => setPermNote(e.target.value)} placeholder="Optional" />
           </div>

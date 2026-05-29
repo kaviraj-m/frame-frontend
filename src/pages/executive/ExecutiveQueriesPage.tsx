@@ -15,6 +15,7 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
+import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 type Query = {
   queryId: string;
   customerUsername: string;
@@ -58,8 +59,8 @@ export function ExecutiveQueriesPage() {
 
   return (
     <div className="flex flex-col gap-4 min-w-0 w-full max-w-full">
-      <div className="flex flex-wrap items-center gap-2.5 mb-4">
-        <div className="relative flex-1 min-w-[180px] max-w-[320px]">
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        <div className={RESPONSIVE_SEARCH_WRAP}>
           <span className="absolute left-[11px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none flex">
             <DataBoardSearchIcon />
           </span>
@@ -71,7 +72,7 @@ export function ExecutiveQueriesPage() {
             aria-label="Search queries"
           />
         </div>
-        <div className="ml-auto flex flex-wrap gap-2 items-center">
+        <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
           <Button asChild size="sm">
             <Link to="/executive/queries/new">New query</Link>
           </Button>
@@ -85,8 +86,8 @@ export function ExecutiveQueriesPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <div className="overflow-auto w-full">
-        <Table>
+      <div className="w-full">
+        <Table stickyFirstColumn>
           <TableHeaderBand>
             <TableRow>
               <TableHead>Query</TableHead>

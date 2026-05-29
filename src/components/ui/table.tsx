@@ -1,10 +1,34 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
-  ({ className, ...props }, ref) => (
-    <div className="relative w-full overflow-auto">
-      <table ref={ref} className={cn("w-full caption-bottom text-sm", className)} {...props} />
+type TableProps = React.HTMLAttributes<HTMLTableElement> & {
+  denseOnMobile?: boolean;
+  stickyFirstColumn?: boolean;
+};
+
+const Table = React.forwardRef<HTMLTableElement, TableProps>(
+  (
+    {
+      className,
+      denseOnMobile = true,
+      stickyFirstColumn = false,
+      ...props
+    }: TableProps,
+    ref,
+  ) => (
+    <div className="relative w-full overflow-x-auto overscroll-x-contain">
+      <table
+        ref={ref}
+        className={cn(
+          "w-full caption-bottom text-sm",
+          denseOnMobile &&
+            "[&_th]:px-2 [&_th]:text-[0.67rem] [&_td]:px-2 [&_td]:py-2 [&_td]:text-xs sm:[&_th]:px-3 sm:[&_th]:text-xs sm:[&_td]:px-3 sm:[&_td]:py-3 sm:[&_td]:text-sm",
+          stickyFirstColumn &&
+            "[&_th:first-child]:sticky [&_th:first-child]:left-0 [&_th:first-child]:z-20 [&_th:first-child]:bg-gray-600 [&_td:first-child]:sticky [&_td:first-child]:left-0 [&_td:first-child]:z-10 [&_td:first-child]:bg-card",
+          className,
+        )}
+        {...props}
+      />
     </div>
   ),
 );

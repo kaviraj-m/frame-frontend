@@ -694,7 +694,7 @@ export function OrderFulfillmentPage({
 
             <Card>
               <h2 className="text-lg font-semibold mb-2">3. Balance</h2>
-              <dl className="grid grid-cols-3 gap-3 text-sm mb-4">
+              <dl className="mb-4 grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
                 <div>
                   <dt className="text-muted-foreground text-xs">Advance</dt>
                   <dd className="font-medium">{formatMoney(order.advancePayment)}</dd>
@@ -725,7 +725,7 @@ export function OrderFulfillmentPage({
                     value={paymentAmount}
                     onChange={(e) => setPaymentAmount(e.target.value)}
                     disabled={busy || !canCollectBalance(order)}
-                    className="w-32"
+                    className="w-full sm:w-32"
                   />
                 </label>
                 <Button
