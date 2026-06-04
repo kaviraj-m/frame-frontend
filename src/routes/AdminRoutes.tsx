@@ -4,6 +4,7 @@ import { AdminUserDetailPage } from "../pages/admin/AdminUserDetailPage";
 import { AdminPricingPage } from "../pages/admin/pricing/AdminPricingPage";
 import { AdminWhatsAppDraftPage } from "../pages/admin/AdminWhatsAppDraftPage";
 import { AdminExecutiveFeaturesPage } from "../pages/admin/AdminExecutiveFeaturesPage";
+import { AdminShippingFromPage } from "../pages/admin/AdminShippingFromPage";
 import { AdminOrdersAllPage } from "../pages/admin/AdminOrdersAllPage";
 import { AdminOrdersProductionPage } from "../pages/admin/AdminOrdersProductionPage";
 import { AdminOrderPatchPage } from "../pages/admin/AdminOrderPatchPage";
@@ -23,6 +24,7 @@ export const adminNestedRoutes = [
   <Route key="adm-user-detail" path="users/:userId" element={<AdminUserDetailPage />} />,
   <Route key="adm-pricing" path="pricing" element={<AdminPricingPage />} />,
   <Route key="adm-exec-features" path="settings/executive-features" element={<AdminExecutiveFeaturesPage />} />,
+  <Route key="adm-shipping-from" path="settings/shipping-from" element={<AdminShippingFromPage />} />,
   <Route key="adm-whatsapp-draft" path="whatsapp-draft" element={<AdminWhatsAppDraftPage />} />,
   <Route key="adm-orders-production" path="orders/production" element={<AdminOrdersProductionPage />} />,
   <Route key="adm-orders-patch" path="orders/patch" element={<AdminOrderPatchPage />} />,

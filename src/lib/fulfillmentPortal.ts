@@ -24,6 +24,7 @@ export type FulfillmentPortalConfig = {
   complete: (orderId: string) => string;
   whatsappDispatch: (orderId: string, trackingNumber?: string) => string;
   whatsappPrint: (orderId: string) => string;
+  shippingFrom: string;
 };
 
 export const adminFulfillmentPortal: FulfillmentPortalConfig = {
@@ -49,6 +50,7 @@ export const adminFulfillmentPortal: FulfillmentPortalConfig = {
   complete: apiPaths.adminOrderComplete,
   whatsappDispatch: apiPaths.adminOrderWhatsApp,
   whatsappPrint: apiPaths.adminOrderPrintWhatsApp,
+  shippingFrom: apiPaths.adminShippingFrom,
 };
 
 export const executiveFulfillmentPortal: FulfillmentPortalConfig = {
@@ -73,4 +75,5 @@ export const executiveFulfillmentPortal: FulfillmentPortalConfig = {
   complete: apiPaths.executiveOrderComplete,
   whatsappDispatch: apiPaths.executiveOrderWhatsAppDispatch,
   whatsappPrint: apiPaths.executiveOrderPrintWhatsApp,
+  shippingFrom: apiPaths.executiveShippingFrom,
 };

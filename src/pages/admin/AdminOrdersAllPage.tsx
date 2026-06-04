@@ -28,7 +28,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   AVATAR_COLORS,
-  FRAMEWORKS_FILTERS,
   avatarColorIndex,
   customerKey,
   initials,
@@ -37,7 +36,23 @@ import {
   orderRemark,
   type FrameworksUiStatus,
 } from "./frameworksOrdersUtils";
-import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
+import { FilterMultiSelect } from "@/components/ui/FilterMultiSelect";
+import {
+  filterOrderListRows,
+  hasActiveOrderListFilters,
+  isValidDateRange,
+  type CreatedDateRange,
+} from "@/lib/executiveOrdersList";
+import { ORDER_AGE_FILTER_OPTIONS, orderRowAgeTier } from "@/lib/orderCreatedAge";
+import { orderStatusMultiSelectOptions } from "@/lib/orderStatusFilter";
+import {
+  FILTER_FIELD_LABEL,
+  RESPONSIVE_DATE_INPUT,
+  RESPONSIVE_SEARCH_WRAP,
+  RESPONSIVE_TOOLBAR_ACTIONS,
+} from "@/lib/responsive";
+
+const EMPTY_DATE_RANGE: CreatedDateRange = { from: "", to: "" };
 
 function IconPlus() {
   return (
@@ -99,6 +114,10 @@ function UserPanel({
     {
       label: "Delivery address",
       value: order.addressDetails?.trim() || "—",
+    },
+    {
+      label: "Pincode",
+      value: order.pincode?.trim() || "—",
       icon: (
         <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
           <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
@@ -206,10 +225,13 @@ export function AdminOrdersAllPage() {
   const [orders, setOrders] = useState<AdminOrderRow[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
+  const [selectedAgeTiers, setSelectedAgeTiers] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<CreatedDateRange>(EMPTY_DATE_RANGE);
   const [selectedOrder, setSelectedOrder] = useState<AdminOrderRow | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   const { confirmAction, dialogProps } = useConfirmDialog();
 
   const refresh = useCallback(async () => {
@@ -234,31 +256,66 @@ export function AdminOrdersAllPage() {
     });
   }, [orders]);
 
+  const dateRangeInvalid = useMemo(
+    () =>
+      !isValidDateRange(dateRange) &&
+      !!(dateRange.from.trim() || dateRange.to.trim()),
+    [dateRange],
+  );
+
+  const statusFilterOptions = useMemo(
+    () => orderStatusMultiSelectOptions(sortedOrders),
+    [sortedOrders],
+  );
+
+  const ageFilterOptions = useMemo(() => {
+    const counts: Record<string, number> = {
+      today: 0,
+      day2: 0,
+      day3: 0,
+      old: 0,
+    };
+    for (const o of sortedOrders) {
+      const tier = orderRowAgeTier(o.createdAt, o.status);
+      if (tier && tier in counts) counts[tier]++;
+    }
+    return ORDER_AGE_FILTER_OPTIONS.map((opt) => ({
+      value: opt.value,
+      label: opt.label,
+      count: counts[opt.value],
+    }));
+  }, [sortedOrders]);
+
   const filteredOrders = useMemo(() => {
-    let data = sortedOrders;
-    if (activeFilter !== "all") {
-      data = data.filter((o) => mapOrderStatus(o.status) === activeFilter);
-    }
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      data = data.filter((o) => {
-        const remark = orderRemark(o).toLowerCase();
-        const rawStatus = (o.status ?? "").toLowerCase();
-        const uiLabel = mapOrderStatus(o.status ?? "").toLowerCase();
-        return (
-          o.orderId.toLowerCase().includes(q) ||
-          o.queryId.toLowerCase().includes(q) ||
-          (o.customerUsername ?? "").toLowerCase().includes(q) ||
-          (o.customerPhoneNumber ?? "").includes(q) ||
-          (o.customerEmail ?? "").toLowerCase().includes(q) ||
-          rawStatus.includes(q) ||
-          uiLabel.includes(q) ||
-          remark.includes(q)
-        );
-      });
-    }
-    return data;
-  }, [sortedOrders, search, activeFilter]);
+    if (dateRangeInvalid) return [];
+    return filterOrderListRows(sortedOrders, {
+      statuses: selectedStatuses,
+      ageTiers: selectedAgeTiers,
+      dateRange,
+      search,
+    });
+  }, [
+    sortedOrders,
+    selectedStatuses,
+    selectedAgeTiers,
+    dateRange,
+    search,
+    dateRangeInvalid,
+  ]);
+
+  const filtersActive = hasActiveOrderListFilters({
+    statuses: selectedStatuses,
+    ageTiers: selectedAgeTiers,
+    dateRange,
+    search,
+  });
+
+  function clearAllFilters() {
+    setSearch("");
+    setSelectedStatuses([]);
+    setSelectedAgeTiers([]);
+    setDateRange(EMPTY_DATE_RANGE);
+  }
 
   function requestDeleteOrder(row: AdminOrderRow) {
     confirmAction(
@@ -308,26 +365,25 @@ export function AdminOrdersAllPage() {
                 aria-label="Search orders"
               />
             </div>
-            {FRAMEWORKS_FILTERS.map((f) => (
-              <Button
-                key={f}
-                type="button"
-                variant={activeFilter === f ? "default" : "outline"}
-                size="sm"
-                onClick={() => setActiveFilter(f)}
-              >
-                {f === "all" ? "All" : f}
-              </Button>
-            ))}
             <div className={RESPONSIVE_TOOLBAR_ACTIONS}>
               <Button
                 type="button"
                 variant="secondary"
                 size="sm"
-                disabled={filteredOrders.length === 0}
-                onClick={() => exportOrdersToExcel(filteredOrders)}
+                disabled={filteredOrders.length === 0 || exporting}
+                onClick={async () => {
+                  setExporting(true);
+                  setError("");
+                  try {
+                    await exportOrdersToExcel(filteredOrders, { fetchContributors: true });
+                  } catch (e) {
+                    setError((e as Error).message);
+                  } finally {
+                    setExporting(false);
+                  }
+                }}
               >
-                Export Excel
+                {exporting ? "Exporting…" : "Export Excel"}
               </Button>
               <Button asChild size="sm" className="gap-1.5">
                 <Link to="/admin/orders/patch">
@@ -338,9 +394,74 @@ export function AdminOrdersAllPage() {
             </div>
           </div>
 
-          <div className="mb-3 px-0.5">
-            <OrderRowAgeLegend />
-          </div>
+          <section
+            className="mb-4 rounded-lg border border-border/70 bg-muted/15 p-3 sm:p-4"
+            aria-label="Order filters"
+          >
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <span className={FILTER_FIELD_LABEL}>Filters</span>
+              {filtersActive ? (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary hover:underline bg-transparent border-0 p-0 cursor-pointer"
+                  onClick={clearAllFilters}
+                >
+                  Clear all
+                </button>
+              ) : null}
+            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <FilterMultiSelect
+                label="Status"
+                emptyLabel="All statuses"
+                selectedSummary="statuses selected"
+                options={statusFilterOptions}
+                selected={selectedStatuses}
+                onChange={setSelectedStatuses}
+                aria-label="Filter by status"
+              />
+              <FilterMultiSelect
+                label="Age"
+                emptyLabel="All ages"
+                selectedSummary="ages selected"
+                options={ageFilterOptions}
+                selected={selectedAgeTiers}
+                onChange={setSelectedAgeTiers}
+                aria-label="Filter by order age row colour"
+              />
+              <label className="flex min-w-0 flex-col gap-1.5">
+                <span className={FILTER_FIELD_LABEL}>Created from</span>
+                <Input
+                  type="date"
+                  className={RESPONSIVE_DATE_INPUT}
+                  value={dateRange.from}
+                  onChange={(e) => setDateRange((p) => ({ ...p, from: e.target.value }))}
+                  aria-label="Created from date"
+                />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1.5">
+                <span className={FILTER_FIELD_LABEL}>Created to</span>
+                <Input
+                  type="date"
+                  className={RESPONSIVE_DATE_INPUT}
+                  value={dateRange.to}
+                  onChange={(e) => setDateRange((p) => ({ ...p, to: e.target.value }))}
+                  aria-label="Created to date"
+                />
+              </label>
+            </div>
+            <div className="mt-4 border-t border-border/60 pt-3">
+              <OrderRowAgeLegend />
+            </div>
+          </section>
+
+          {dateRangeInvalid ? (
+            <Alert variant="destructive" role="alert" className="mb-3">
+              <AlertDescription>
+                &quot;From&quot; date must be on or before &quot;To&quot; date.
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           <div className="w-full">
             <Table stickyFirstColumn>
@@ -509,7 +630,11 @@ export function AdminOrdersAllPage() {
                 {filteredOrders.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                      No orders match your filters.
+                      {dateRangeInvalid
+                        ? "Fix the date range to see matching orders."
+                        : orders.length === 0
+                          ? "No orders yet."
+                          : "No orders match your filters."}
                     </TableCell>
                   </TableRow>
                 ) : null}
@@ -517,7 +642,14 @@ export function AdminOrdersAllPage() {
             </Table>
             <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
               <p className="text-sm text-muted-foreground">
-                Showing <strong>{filteredOrders.length}</strong> of <strong>{orders.length}</strong> orders
+                Showing <strong>{filteredOrders.length}</strong> order
+                {filteredOrders.length === 1 ? "" : "s"}
+                {filtersActive ? (
+                  <>
+                    {" "}
+                    (of <strong>{orders.length}</strong>)
+                  </>
+                ) : null}
               </p>
               <div className="flex gap-1">
                 <Button type="button" variant="outline" size="icon" className="h-7 w-7" disabled aria-hidden>

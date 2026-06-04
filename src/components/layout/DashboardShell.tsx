@@ -88,8 +88,8 @@ export function DashboardShell({
   return (
     <div
       className={cn(
-        "mx-auto flex min-h-[100dvh] w-full max-w-[1920px] flex-col bg-background lg:h-[100dvh] lg:overflow-hidden",
-        "lg:flex-row",
+        "mx-auto flex min-h-[100dvh] w-full max-w-[1920px] flex-col bg-background",
+        "lg:h-[100dvh] lg:min-h-0 lg:overflow-hidden lg:flex-row",
       )}
     >
       <Dialog open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
@@ -155,7 +155,7 @@ export function DashboardShell({
         </div>
       </aside>
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden">
+      <div className="flex min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-hidden">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border bg-background px-4 py-2 sm:px-6">
           <Button
             type="button"
@@ -177,7 +177,7 @@ export function DashboardShell({
             <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
           </header>
         ) : null}
-        <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <main className="flex-1 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain">
           <div className="p-4 pb-8 sm:p-6">{children}</div>
         </main>
       </div>

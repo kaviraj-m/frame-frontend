@@ -33,6 +33,16 @@ export function matchesOrderStatusFilter(status: string | undefined, filter: str
   return (status ?? "").trim().toUpperCase() === filter.trim().toUpperCase();
 }
 
+/** Multi-select status filter — empty selection means no filter (show all). */
+export function matchesOrderStatusesFilter(
+  status: string | undefined,
+  selected: readonly string[],
+): boolean {
+  if (selected.length === 0) return true;
+  const raw = (status ?? "").trim().toUpperCase();
+  return selected.some((s) => s.trim().toUpperCase() === raw);
+}
+
 export function countOrdersByStatus(orders: OrderListRow[]): Record<string, number> {
   const counts: Record<string, number> = { all: orders.length };
   for (const s of ALL_ORDER_STATUSES) {
@@ -77,4 +87,9 @@ export function orderStatusFilterOptions(orders: OrderListRow[]): OrderStatusFil
   }
 
   return options;
+}
+
+/** Multi-select options — concrete statuses only (no "all"), with counts. */
+export function orderStatusMultiSelectOptions(orders: OrderListRow[]): OrderStatusFilterOption[] {
+  return orderStatusFilterOptions(orders).filter((o) => o.value !== "all");
 }

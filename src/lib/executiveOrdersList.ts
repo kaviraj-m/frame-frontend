@@ -1,6 +1,10 @@
-import { orderCreatedCalendarDayKey, orderRowAgeTier } from "./orderCreatedAge";
+import {
+  matchesOrderAgeTiersFilter,
+  orderCreatedCalendarDayKey,
+  orderRowAgeTier,
+} from "./orderCreatedAge";
 import { mapOrderStatus } from "./orderStatusUi";
-import { matchesOrderStatusFilter } from "./orderStatusFilter";
+import { matchesOrderStatusFilter, matchesOrderStatusesFilter } from "./orderStatusFilter";
 import type { OrderListRow } from "./orderListTypes";
 
 /** @deprecated Use string status filter with matchesOrderStatusFilter — kept for tests. */
@@ -148,7 +152,8 @@ export function orderMatchesSearch(o: OrderListRow, query: string): boolean {
     uiLabel.includes(q) ||
     (o.frameSize ?? "").toLowerCase().includes(q) ||
     (o.paymentMode ?? "").toLowerCase().includes(q) ||
-    (o.createdByExecutiveId ?? "").toLowerCase().includes(q)
+    (o.createdByExecutiveId ?? "").toLowerCase().includes(q) ||
+    (o.designRemarks ?? "").toLowerCase().includes(q)
   );
 }
 
@@ -173,6 +178,39 @@ export function countByStatusFilter(
     if (matchesExecutiveStatusFilter(o.status, "cancelled")) counts.cancelled++;
   }
   return counts;
+}
+
+export function filterOrderListRows(
+  orders: OrderListRow[],
+  opts: {
+    statuses: string[];
+    ageTiers: string[];
+    dateRange: CreatedDateRange;
+    search: string;
+  },
+): OrderListRow[] {
+  const dateOk = isValidDateRange(opts.dateRange);
+  return orders.filter((o) => {
+    if (!matchesOrderStatusesFilter(o.status, opts.statuses)) return false;
+    if (!matchesOrderAgeTiersFilter(o.createdAt, o.status, opts.ageTiers)) return false;
+    if (dateOk && !matchesCreatedDateRange(o.createdAt, opts.dateRange)) return false;
+    if (!orderMatchesSearch(o, opts.search)) return false;
+    return true;
+  });
+}
+
+export function hasActiveOrderListFilters(opts: {
+  statuses: string[];
+  ageTiers: string[];
+  dateRange: CreatedDateRange;
+  search: string;
+}): boolean {
+  return (
+    opts.statuses.length > 0 ||
+    opts.ageTiers.length > 0 ||
+    !!(opts.dateRange.from.trim() || opts.dateRange.to.trim()) ||
+    !!opts.search.trim()
+  );
 }
 
 export function filterExecutiveOrders(

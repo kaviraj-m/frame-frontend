@@ -18,9 +18,9 @@ export function AdminOrderPatchPage() {
   const qpOrderId = searchParams.get("orderId")?.trim() ?? "";
 
   const [orderId, setOrderId] = useState(qpOrderId);
-  const [orderStatus, setOrderStatus] = useState("DISPATCHED");
+  const [orderStatus, setOrderStatus] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
-  const [paymentStatus, setPaymentStatus] = useState("FULLY_PAID");
+  const [paymentStatus, setPaymentStatus] = useState("");
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -40,14 +40,18 @@ export function AdminOrderPatchPage() {
       return;
     }
     setFieldErrors({});
+    const body: Record<string, string> = {};
+    if (orderStatus) body.status = orderStatus;
+    if (paymentStatus) body.paymentStatus = paymentStatus;
+    if (trackingNumber.trim()) body.trackingNumber = trackingNumber.trim();
+    if (Object.keys(body).length === 0) {
+      setErr("Select at least one field to update: status, payment status, or tracking number.");
+      return;
+    }
     try {
       await api(apiPaths.adminOrder(orderId.trim()), {
         method: "PUT",
-        body: JSON.stringify({
-          status: orderStatus,
-          trackingNumber,
-          paymentStatus,
-        }),
+        body: JSON.stringify(body),
       });
       setMsg("Order updated successfully.");
     } catch (e) {
@@ -98,6 +102,7 @@ export function AdminOrderPatchPage() {
                 onChange={(e) => setOrderStatus(e.target.value)}
                 className={selectClass}
               >
+                <option value="">Select…</option>
                 <option>DESIGN_APPROVED</option>
                 <option>IN_PRINT</option>
                 <option>FRAME_READY</option>
@@ -116,6 +121,7 @@ export function AdminOrderPatchPage() {
                 onChange={(e) => setPaymentStatus(e.target.value)}
                 className={selectClass}
               >
+                <option value="">Select…</option>
                 <option>PENDING</option>
                 <option>ADVANCE_RECEIVED</option>
                 <option>FULLY_PAID</option>

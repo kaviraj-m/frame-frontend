@@ -77,6 +77,7 @@ export function useExecutiveOrderNew(queryId: string) {
   const [catalogError, setCatalogError] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([newDraftLine()]);
   const [addressDetails, setAddressDetails] = useState("");
+  const [pincode, setPincode] = useState("");
   const [advancePayment, setAdvancePayment] = useState("100");
   const [paymentMode, setPaymentMode] = useState("");
   const [paymentProofFiles, setPaymentProofFiles] = useState<File[]>([]);
@@ -162,13 +163,15 @@ export function useExecutiveOrderNew(queryId: string) {
         ? null
         : "Select payment mode (cash or online)";
     const addressErr = validateRequired(addressDetails, "Delivery address");
+    const pincodeErr = validateRequired(pincode, "Pincode");
     const advanceErr = validatePositiveNumber(advancePayment, "Advance payment");
     const errors: Record<string, string> = {};
     if (paymentErr) errors.paymentMode = paymentErr;
     if (addressErr) errors.address = addressErr;
+    if (pincodeErr) errors.pincode = pincodeErr;
     if (advanceErr) errors.advance = advanceErr;
     setFieldErrors(errors);
-    const validationError = firstError(paymentErr, addressErr, advanceErr);
+    const validationError = firstError(paymentErr, addressErr, pincodeErr, advanceErr);
     if (validationError) {
       setError(validationError);
       return;
@@ -242,6 +245,7 @@ export function useExecutiveOrderNew(queryId: string) {
         body: JSON.stringify({
           queryId,
           addressDetails: addressDetails.trim(),
+          pincode: pincode.trim(),
           advancePayment: Number(advancePayment),
           paymentMode,
           advancePaymentScreenshots: proofKeys,
@@ -297,6 +301,8 @@ export function useExecutiveOrderNew(queryId: string) {
     orderTotalPrice,
     addressDetails,
     setAddressDetails,
+    pincode,
+    setPincode,
     advancePayment,
     setAdvancePayment,
     paymentMode,

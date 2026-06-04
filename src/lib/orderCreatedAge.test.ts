@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   isTerminalOrderStatus,
+  matchesOrderAgeTiersFilter,
   orderAgeDayOffset,
   orderRowAgeClass,
   orderRowAgeTier,
@@ -70,5 +71,41 @@ describe("orderCreatedAge", () => {
     expect(orderRowAgeDataAttr("2026-05-20T08:00:00.000Z", "IN_DESIGN", NOW)).toBe("today");
     expect(orderRowAgeDataAttr("2026-05-19T10:00:00.000Z", "IN_PRINT", NOW)).toBe("day2");
     expect(orderRowAgeDataAttr("2026-05-20T08:00:00.000Z", "ORDER_COMPLETED", NOW)).toBeUndefined();
+  });
+});
+
+describe("matchesOrderAgeTiersFilter", () => {
+  it("shows all when selection is empty", () => {
+    expect(matchesOrderAgeTiersFilter("2026-05-20T08:00:00.000Z", "IN_DESIGN", [], NOW)).toBe(true);
+    expect(
+      matchesOrderAgeTiersFilter("2026-05-20T08:00:00.000Z", "ORDER_COMPLETED", [], NOW),
+    ).toBe(true);
+  });
+
+  it("matches a single tier", () => {
+    expect(matchesOrderAgeTiersFilter("2026-05-20T08:00:00.000Z", "IN_DESIGN", ["today"], NOW)).toBe(
+      true,
+    );
+    expect(matchesOrderAgeTiersFilter("2026-05-19T10:00:00.000Z", "IN_PRINT", ["today"], NOW)).toBe(
+      false,
+    );
+  });
+
+  it("matches any selected tier (OR)", () => {
+    expect(
+      matchesOrderAgeTiersFilter("2026-05-20T08:00:00.000Z", "IN_DESIGN", ["today", "old"], NOW),
+    ).toBe(true);
+    expect(
+      matchesOrderAgeTiersFilter("2026-05-15T10:00:00.000Z", "IN_DESIGN", ["today", "old"], NOW),
+    ).toBe(true);
+    expect(
+      matchesOrderAgeTiersFilter("2026-05-18T10:00:00.000Z", "ORDER_CONFIRMED", ["today", "old"], NOW),
+    ).toBe(false);
+  });
+
+  it("excludes terminal orders when any age tier is selected", () => {
+    expect(
+      matchesOrderAgeTiersFilter("2026-05-20T08:00:00.000Z", "ORDER_COMPLETED", ["today"], NOW),
+    ).toBe(false);
   });
 });

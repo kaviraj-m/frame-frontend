@@ -6,6 +6,7 @@ import { Card } from "@/components/common/Card";
 import { OrderStatusBadge } from "@/components/ui/OrderStatusBadge";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { formatMoney } from "@/lib/formatDisplay";
+import { exportAdminAnalyticsToExcel } from "@/lib/exportAdminAnalyticsExcel";
 import { useAdminAnalytics } from "./analytics/useAdminAnalytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,15 +92,22 @@ export function AdminAnalyticsPage() {
             Last 90 days
           </Button>
         </div>
-        <Button
-          type="button"
-          size="sm"
-          onClick={() => void load()}
-          disabled={loading}
-          className="ml-auto"
-        >
-          Refresh
-        </Button>
+        <div className="ml-auto flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            disabled={loading || !data}
+            onClick={() => {
+              if (data) exportAdminAnalyticsToExcel(data);
+            }}
+          >
+            Export Excel
+          </Button>
+          <Button type="button" size="sm" onClick={() => void load()} disabled={loading}>
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {err ? (

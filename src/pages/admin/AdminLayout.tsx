@@ -22,6 +22,7 @@ const navSections: ShellNavSection[] = [
     heading: "Settings",
     items: [
       { to: "/admin/settings/executive-features", label: "Executive features", end: true },
+      { to: "/admin/settings/shipping-from", label: "From address", end: true },
     ],
   },
   {
@@ -31,7 +32,7 @@ const navSections: ShellNavSection[] = [
   {
     heading: "Operations",
     items: [
-      { to: "/admin/orders", label: "All orders", end: false },
+      { to: "/admin/orders", label: "All orders", end: true },
       { to: "/admin/queries", label: "All queries", end: true },
       { to: "/admin/orders/production", label: "Production & dispatch", end: true },
       { to: "/admin/orders/patch", label: "Update order", end: true },

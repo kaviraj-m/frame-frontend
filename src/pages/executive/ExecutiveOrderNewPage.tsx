@@ -57,6 +57,8 @@ export function ExecutiveOrderNewPage() {
         orderTotalPrice={o.orderTotalPrice}
         addressDetails={o.addressDetails}
         setAddressDetails={o.setAddressDetails}
+        pincode={o.pincode}
+        setPincode={o.setPincode}
         advancePayment={o.advancePayment}
         setAdvancePayment={o.setAdvancePayment}
         paymentMode={o.paymentMode}

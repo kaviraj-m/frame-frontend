@@ -97,6 +97,8 @@ export const apiPaths = {
   /** All orders for production & dispatch queue (executive, when feature enabled). */
   executiveProductionOrders: "/api/executive/production-orders",
   adminExecutiveFeatures: "/api/admin/settings/executive-features",
+  adminShippingFrom: "/api/admin/settings/shipping-from",
+  executiveShippingFrom: "/api/executive/settings/shipping-from",
   executiveFulfillmentOrder: (orderId: string) => `/api/executive/orders/${enc(orderId)}`,
   executiveOrderPrintImage: (orderId: string, disposition: "inline" | "attachment") =>
     `/api/executive/orders/${enc(orderId)}/print-image?disposition=${disposition}`,
@@ -119,6 +121,7 @@ export const apiPaths = {
   },
   executiveOrderPrintWhatsApp: (orderId: string) =>
     `/api/executive/orders/${enc(orderId)}/whatsapp-print`,
+  adminOrderExportContributors: "/api/admin/order-export-contributors",
   adminOrder: (orderId: string) => `/api/admin/orders/${enc(orderId)}`,
   adminDeleteOrder: (orderId: string) => `/api/admin/orders/${enc(orderId)}`,
   adminOrderDetail: (orderId: string) => `/api/admin/orders/${enc(orderId)}/detail`,

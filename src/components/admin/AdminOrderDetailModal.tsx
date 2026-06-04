@@ -197,6 +197,7 @@ export function AdminOrderDetailModal({
                   <DetailField label="Courier stage" value={order.courierStage} />
                   <DetailField label="Tracking" value={order.trackingNumber?.trim()} />
                   <DetailField label="Address" value={order.addressDetails?.trim()} />
+                  <DetailField label="Pincode" value={order.pincode?.trim()} />
                   <DetailField
                     label="Created"
                     value={

@@ -29,6 +29,8 @@ type Props = {
   orderTotalPrice: number | null;
   addressDetails: string;
   setAddressDetails: (v: string) => void;
+  pincode: string;
+  setPincode: (v: string) => void;
   advancePayment: string;
   setAdvancePayment: (v: string) => void;
   paymentMode: string;
@@ -54,6 +56,8 @@ export function ExecutiveOrderNewForm({
   orderTotalPrice,
   addressDetails,
   setAddressDetails,
+  pincode,
+  setPincode,
   advancePayment,
   setAdvancePayment,
   paymentMode,
@@ -147,7 +151,6 @@ export function ExecutiveOrderNewForm({
               required
               error={fieldErrors.address}
               hint="Full shipping address for the courier — use multiple lines."
-              className="sm:col-span-2"
             >
               <Textarea
                 rows={4}
@@ -156,9 +159,21 @@ export function ExecutiveOrderNewForm({
                   setAddressDetails(e.target.value);
                   clearFieldError("address");
                 }}
-                placeholder={"Street / house no.\nArea, landmark\nCity, state\nPIN code"}
+                placeholder={"Street / house no.\nArea, landmark\nCity, state"}
                 disabled={submitting}
                 aria-invalid={!!fieldErrors.address}
+              />
+            </FormField>
+            <FormField label="Pincode" required error={fieldErrors.pincode}>
+              <Input
+                value={pincode}
+                onChange={(e) => {
+                  setPincode(e.target.value);
+                  clearFieldError("pincode");
+                }}
+                placeholder="e.g. 560001"
+                disabled={submitting}
+                aria-invalid={!!fieldErrors.pincode}
               />
             </FormField>
           </div>

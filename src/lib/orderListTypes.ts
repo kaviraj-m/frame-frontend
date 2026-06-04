@@ -6,6 +6,7 @@ export type OrderListRow = {
   customerPhoneNumber?: string;
   customerEmail?: string;
   addressDetails?: string;
+  pincode?: string;
   designRemarks?: string;
   designStage?: string;
   status: string;
@@ -33,6 +34,8 @@ export function mergeOrderFromApi(prev: OrderListRow | null, next: OrderListRow)
     customerUsername: next.customerUsername ?? prev?.customerUsername,
     customerPhoneNumber: next.customerPhoneNumber ?? prev?.customerPhoneNumber,
     customerEmail: next.customerEmail ?? prev?.customerEmail,
+    addressDetails: next.addressDetails ?? prev?.addressDetails,
+    pincode: next.pincode ?? prev?.pincode,
   };
 }
 

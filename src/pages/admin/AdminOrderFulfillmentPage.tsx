@@ -43,6 +43,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
+import type { ShippingFromAddress } from "@/lib/shippingFromTypes";
+import { isShippingFromConfigured } from "@/lib/shippingFromTypes";
+import { canPrintShippingLabel, printShippingLabel } from "@/lib/printShippingLabel";
 
 const WHATSAPP_BTN =
   "border border-[rgba(37,211,102,0.55)] bg-[rgba(37,211,102,0.14)] text-[#d4f5e0] font-semibold hover:border-[rgba(37,211,102,0.85)] hover:bg-[rgba(37,211,102,0.22)] hover:text-[#f0fff5]";
@@ -68,6 +71,8 @@ export function OrderFulfillmentPage({
   const [printPreviewUrl, setPrintPreviewUrl] = useState<string | null>(null);
   const [printPreviewLoading, setPrintPreviewLoading] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState("");
+  const [shippingFrom, setShippingFrom] = useState<ShippingFromAddress | null>(null);
+  const [shippingFromLoaded, setShippingFromLoaded] = useState(false);
   const [waBusy, setWaBusy] = useState(false);
   const printPreviewObjectUrl = useRef<string | null>(null);
   const { confirmAction, dialogProps } = useConfirmDialog();
@@ -109,6 +114,24 @@ export function OrderFulfillmentPage({
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setShippingFromLoaded(false);
+    (async () => {
+      try {
+        const cfg = await api<ShippingFromAddress>(portal.shippingFrom);
+        if (!cancelled) setShippingFrom(cfg);
+      } catch {
+        if (!cancelled) setShippingFrom(null);
+      } finally {
+        if (!cancelled) setShippingFromLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [portal.shippingFrom]);
 
   useEffect(() => {
     if (!orderId.trim() || !order?.printedFrameImage?.trim()) {
@@ -471,11 +494,101 @@ export function OrderFulfillmentPage({
         title={orderId}
         description="In print, frame ready, balance collection, and dispatch."
         actions={
-          <Button asChild variant="secondary" size="sm">
-            <Link to={portal.productionPath}>Production queue</Link>
-          </Button>
+          <div className="flex max-w-full flex-wrap items-center justify-end gap-x-4 gap-y-2 self-center">
+            {order && !loading ? (
+              <>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-right">
+                  <span>
+                    <span className="text-muted-foreground">Name </span>
+                    <span className="font-medium">{order.customerUsername?.trim() || "—"}</span>
+                  </span>
+                  <span>
+                    <span className="text-muted-foreground">Phone </span>
+                    <span className="font-medium">{order.customerPhoneNumber?.trim() || "—"}</span>
+                  </span>
+                  <span className="max-w-[14rem]">
+                    <span className="text-muted-foreground">Address </span>
+                    <span className="font-medium whitespace-pre-wrap">
+                      {order.addressDetails?.trim() || "—"}
+                    </span>
+                  </span>
+                  <span>
+                    <span className="text-muted-foreground">Pincode </span>
+                    <span className="font-medium">{order.pincode?.trim() || "—"}</span>
+                  </span>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={
+                    !shippingFromLoaded ||
+                    !canPrintShippingLabel(shippingFrom, {
+                      name: order.customerUsername?.trim() ?? "",
+                      phone: order.customerPhoneNumber?.trim() ?? "",
+                      address: order.addressDetails?.trim() ?? "",
+                      pincode: order.pincode?.trim() ?? "",
+                    })
+                  }
+                  title={
+                    isShippingFromConfigured(shippingFrom)
+                      ? "Print A6 shipping label (order ID, from, to). In the print dialog choose A6 paper and turn off headers and footers."
+                      : "Configure Admin → Settings → From address first"
+                  }
+                  onClick={() => {
+                    if (!order) return;
+                    if (!isShippingFromConfigured(shippingFrom)) {
+                      setError(
+                        portal.roleLabel === "Admin"
+                          ? "Configure shipping from address under Admin → Settings → From address before printing."
+                          : "Ask an admin to configure the shipping from address before printing.",
+                      );
+                      return;
+                    }
+                    setError("");
+                    try {
+                      printShippingLabel({
+                        orderId,
+                        from: shippingFrom!,
+                        to: {
+                          name: order.customerUsername?.trim() ?? "",
+                          phone: order.customerPhoneNumber?.trim() ?? "",
+                          address: order.addressDetails?.trim() ?? "",
+                          pincode: order.pincode?.trim() ?? "",
+                        },
+                      });
+                    } catch (e) {
+                      setError((e as Error).message);
+                    }
+                  }}
+                >
+                  Print label
+                </Button>
+              </>
+            ) : null}
+            <Button asChild variant="secondary" size="sm">
+              <Link to={portal.productionPath}>Production queue</Link>
+            </Button>
+          </div>
         }
       />
+
+      {order && !loading && shippingFromLoaded && !isShippingFromConfigured(shippingFrom) ? (
+        <Alert variant="destructive" role="status">
+          <AlertDescription>
+            {portal.roleLabel === "Admin" ? (
+              <>
+                Set up the sender address before printing labels.{" "}
+                <Link to="/admin/settings/shipping-from" className="font-semibold underline">
+                  From address settings
+                </Link>
+              </>
+            ) : (
+              "Ask an admin to set up the shipping from address (Admin → Settings → From address)."
+            )}
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       {loading && <p className="text-sm text-muted-foreground">Loading order…</p>}
       {error && (
@@ -825,13 +938,6 @@ export function OrderFulfillmentPage({
               )}
             </Card>
           </div>
-
-          {order.addressDetails?.trim() && (
-            <Card>
-              <h2 className="text-lg font-semibold mb-2">Delivery address</h2>
-              <p className="text-sm whitespace-pre-wrap">{order.addressDetails}</p>
-            </Card>
-          )}
 
           {portal.patchPath ? (
             <p className="text-sm text-muted-foreground">

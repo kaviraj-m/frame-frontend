@@ -37,6 +37,26 @@ export function orderAgeDayOffset(
 
 export type OrderRowAgeTier = "" | "today" | "day2" | "day3" | "old";
 
+export const ORDER_AGE_FILTER_OPTIONS = [
+  { value: "today" as const, label: "Today" },
+  { value: "day2" as const, label: "Yesterday" },
+  { value: "day3" as const, label: "Delayed" },
+  { value: "old" as const, label: "Overdue" },
+];
+
+/** Multi-select age tier filter — empty selection means no filter (show all). */
+export function matchesOrderAgeTiersFilter(
+  createdAt: string | undefined,
+  status: string | undefined,
+  selected: readonly string[],
+  now?: Date,
+): boolean {
+  if (selected.length === 0) return true;
+  const tier = orderRowAgeTier(createdAt, status, now);
+  if (!tier) return false;
+  return selected.includes(tier);
+}
+
 /**
  * Age tier from created date (IST calendar days):
  * - today (0): green
