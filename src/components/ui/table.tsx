@@ -16,11 +16,16 @@ const Table = React.forwardRef<HTMLTableElement, TableProps>(
     }: TableProps,
     ref,
   ) => (
-    <div className="relative w-full overflow-x-auto overscroll-x-contain touch-pan-y">
+    <div
+      className={cn(
+        "relative max-w-full min-w-0 overflow-x-auto overscroll-x-contain",
+        "[-webkit-overflow-scrolling:touch]",
+      )}
+    >
       <table
         ref={ref}
         className={cn(
-          "w-full caption-bottom text-sm",
+          "w-max min-w-full caption-bottom text-sm",
           denseOnMobile &&
             "[&_th]:px-2 [&_th]:text-[0.67rem] [&_td]:px-2 [&_td]:py-2 [&_td]:text-xs sm:[&_th]:px-3 sm:[&_th]:text-xs sm:[&_td]:px-3 sm:[&_td]:py-3 sm:[&_td]:text-sm",
           stickyFirstColumn &&
