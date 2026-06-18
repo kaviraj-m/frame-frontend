@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, apiUpload } from "../lib/api";
 import { apiPaths } from "../lib/apiPaths";
@@ -85,6 +85,8 @@ export function useExecutiveOrderNew(queryId: string) {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const submitLock = useRef(false);
+  const confirmedOrder = useRef<ConfirmOrderResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +158,9 @@ export function useExecutiveOrderNew(queryId: string) {
 
   async function createOrder(e: FormEvent) {
     e.preventDefault();
+    if (submitLock.current) return;
+    submitLock.current = true;
+    setSubmitting(true);
     setError("");
     setStatus("");
     const paymentErr =
@@ -174,6 +179,8 @@ export function useExecutiveOrderNew(queryId: string) {
     const validationError = firstError(paymentErr, addressErr, pincodeErr, advanceErr);
     if (validationError) {
       setError(validationError);
+      submitLock.current = false;
+      setSubmitting(false);
       return;
     }
     try {
@@ -216,42 +223,46 @@ export function useExecutiveOrderNew(queryId: string) {
         }));
         return;
       }
-      if (paymentMode === "ONLINE" && paymentProofFiles.length === 0) {
+      if (paymentMode === "ONLINE" && paymentProofFiles.length === 0 && !confirmedOrder.current) {
         setError("Online payment requires at least one payment screenshot.");
         return;
       }
 
-      setSubmitting(true);
-
-      const proofKeys: string[] = [];
-      if (paymentMode === "ONLINE") {
-        for (let i = 0; i < paymentProofFiles.length; i++) {
-          setStatus(`Uploading payment proof ${i + 1} of ${paymentProofFiles.length}…`);
-          const fd = new FormData();
-          fd.append("file", paymentProofFiles[i]);
-          const up = await apiUpload<{ r2Key: string }>(apiPaths.executiveUploads, fd);
-          proofKeys.push(up.r2Key);
+      let res = confirmedOrder.current;
+      if (!res) {
+        const proofKeys: string[] = [];
+        if (paymentMode === "ONLINE") {
+          for (let i = 0; i < paymentProofFiles.length; i++) {
+            setStatus(`Uploading payment proof ${i + 1} of ${paymentProofFiles.length}…`);
+            const fd = new FormData();
+            fd.append("file", paymentProofFiles[i]);
+            const up = await apiUpload<{ r2Key: string }>(apiPaths.executiveUploads, fd);
+            proofKeys.push(up.r2Key);
+          }
         }
-      }
 
-      setStatus("Confirming order…");
-      const confirmLines = lines.map((line, i) => ({
-        frameSize: line.frameSize,
-        quantity: Math.max(1, line.quantity),
-        sortOrder: i + 1,
-      }));
-      const res = await api<ConfirmOrderResponse>(apiPaths.executiveOrders, {
-        method: "POST",
-        body: JSON.stringify({
-          queryId,
-          addressDetails: addressDetails.trim(),
-          pincode: pincode.trim(),
-          advancePayment: Number(advancePayment),
-          paymentMode,
-          advancePaymentScreenshots: proofKeys,
-          lines: confirmLines,
-        }),
-      });
+        setStatus("Confirming order…");
+        const confirmLines = lines.map((line, i) => ({
+          frameSize: line.frameSize,
+          quantity: Math.max(1, line.quantity),
+          sortOrder: i + 1,
+        }));
+        res = await api<ConfirmOrderResponse>(apiPaths.executiveOrders, {
+          method: "POST",
+          body: JSON.stringify({
+            queryId,
+            addressDetails: addressDetails.trim(),
+            pincode: pincode.trim(),
+            advancePayment: Number(advancePayment),
+            paymentMode,
+            advancePaymentScreenshots: proofKeys,
+            lines: confirmLines,
+          }),
+        });
+        confirmedOrder.current = res;
+      } else {
+        setStatus("Resuming image uploads…");
+      }
 
       const itemsBySort = [...res.lineItems].sort((a, b) => a.sortOrder - b.sortOrder);
 
@@ -261,12 +272,12 @@ export function useExecutiveOrderNew(queryId: string) {
         if (!item) {
           throw new Error(`Missing line item for frame ${i + 1} after confirm.`);
         }
-        for (let i = 0; i < draft.images.length; i++) {
+        for (let j = 0; j < draft.images.length; j++) {
           setStatus(
-            `Uploading ${draft.frameSize} image ${i + 1} of ${draft.images.length}…`,
+            `Uploading ${draft.frameSize} image ${j + 1} of ${draft.images.length}…`,
           );
           const custFd = new FormData();
-          custFd.append("file", draft.images[i]);
+          custFd.append("file", draft.images[j]);
           await apiUpload(
             apiPaths.executiveOrderLineAsset(res.orderId, item.lineItemId, "customer"),
             custFd,
@@ -274,11 +285,13 @@ export function useExecutiveOrderNew(queryId: string) {
         }
       }
 
+      confirmedOrder.current = null;
       setStatus("Order confirmed.");
       navigate("/executive/orders");
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   }
