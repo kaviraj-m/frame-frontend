@@ -33,6 +33,7 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
+import { ExecutiveOrderDetailModal } from "@/components/executive/ExecutiveOrderDetailModal";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_BTN_COMPACT } from "@/lib/whatsappButtonStyles";
 import {
@@ -67,6 +68,7 @@ export function ExecutiveOrdersListPage() {
   const [frameFilter, setFrameFilter] = useState("all");
   const [payModeFilter, setPayModeFilter] = useState("all");
   const [waBusyOrderId, setWaBusyOrderId] = useState<string | null>(null);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   async function openWhatsApp(orderId: string) {
     setError("");
@@ -347,11 +349,21 @@ export function ExecutiveOrdersListPage() {
                 <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(o.createdAt)}</TableCell>
                 <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(o.updatedAt)}</TableCell>
                 <TableCell className="text-right">
-                  <Button asChild variant="secondary" size="sm">
-                    <Link to={`/executive/orders/${encodeURIComponent(o.orderId)}/assets`}>
-                      Photos
-                    </Link>
-                  </Button>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDetailOrderId(o.orderId)}
+                    >
+                      View
+                    </Button>
+                    <Button asChild variant="secondary" size="sm">
+                      <Link to={`/executive/orders/${encodeURIComponent(o.orderId)}/assets`}>
+                        Photos
+                      </Link>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -377,6 +389,12 @@ export function ExecutiveOrdersListPage() {
         Nothing here? Start from <Link to="/executive/queries" className="text-primary font-semibold hover:underline">Queries</Link> and use{" "}
         <strong>Confirm order</strong> on a row. Export Excel includes the filtered list only.
       </p>
+
+      <ExecutiveOrderDetailModal
+        orderId={detailOrderId ?? ""}
+        open={!!detailOrderId}
+        onClose={() => setDetailOrderId(null)}
+      />
     </div>
   );
 }

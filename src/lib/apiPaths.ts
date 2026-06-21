@@ -28,6 +28,9 @@ export const apiPaths = {
   executiveUploads: "/api/executive/uploads",
   /** List assets for an order (GET). */
   executiveOrderAssets: (orderId: string) => `/api/executive/orders/${enc(orderId)}/assets`,
+  executiveOrderDetail: (orderId: string) => `/api/executive/orders/${enc(orderId)}/detail`,
+  executivePreviewRemarkImage: (orderId: string, remarkId: string) =>
+    `/api/executive/orders/${enc(orderId)}/preview-remarks/${enc(remarkId)}/file?disposition=inline`,
   /** GET binary file; `disposition=inline` to view, `attachment` to download. */
   executiveOrderAssetFile: (orderId: string, assetId: string, disposition: "inline" | "attachment") =>
     `/api/executive/orders/${enc(orderId)}/files/${enc(assetId)}?disposition=${disposition}`,

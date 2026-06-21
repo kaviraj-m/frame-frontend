@@ -15,6 +15,7 @@ import {
   TableHeaderBand,
   TableRow,
 } from "@/components/ui/table";
+import { ExecutiveQueryDetailModal } from "@/components/executive/ExecutiveQueryDetailModal";
 import { RESPONSIVE_SEARCH_WRAP, RESPONSIVE_TOOLBAR_ACTIONS } from "@/lib/responsive";
 type Query = {
   queryId: string;
@@ -30,6 +31,7 @@ export function ExecutiveQueriesPage() {
   const [queries, setQueries] = useState<Query[]>([]);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [detailQueryId, setDetailQueryId] = useState<string | null>(null);
   async function loadQueries() {
     setError("");
     try {
@@ -116,6 +118,14 @@ export function ExecutiveQueriesPage() {
                 <TableCell className="whitespace-nowrap text-xs">{formatShortDateTime(q.updatedAt)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-wrap gap-2 justify-end">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDetailQueryId(q.queryId)}
+                    >
+                      View
+                    </Button>
                     <Button asChild variant="outline" size="sm">
                       <Link to={`/executive/queries/${encodeURIComponent(q.queryId)}/remarks`}>
                         Remarks
@@ -144,6 +154,12 @@ export function ExecutiveQueriesPage() {
           {search.trim() ? ` (of ${queries.length})` : ""}
         </p>
       </div>
+
+      <ExecutiveQueryDetailModal
+        queryId={detailQueryId ?? ""}
+        open={!!detailQueryId}
+        onClose={() => setDetailQueryId(null)}
+      />
     </div>
   );
 }

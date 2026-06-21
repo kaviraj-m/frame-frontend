@@ -18,6 +18,10 @@ describe("apiPaths", () => {
   it("uses one URL pattern for executive asset link and multipart upload", () => {
     const id = "ORD-1";
     expect(apiPaths.executiveOrderAssets(id)).toBe("/api/executive/orders/ORD-1/assets");
+    expect(apiPaths.executiveOrderDetail(id)).toBe("/api/executive/orders/ORD-1/detail");
+    expect(apiPaths.executivePreviewRemarkImage(id, "dpr-1")).toBe(
+      "/api/executive/orders/ORD-1/preview-remarks/dpr-1/file?disposition=inline",
+    );
     expect(apiPaths.executiveOrderAsset(id, "source")).toBe("/api/executive/orders/ORD-1/assets/source");
     expect(apiPaths.executiveOrderAsset(id, "customer")).toBe("/api/executive/orders/ORD-1/assets/customer");
     expect(apiPaths.executiveOrderLineAsset(id, "oli-1", "customer")).toBe(
