@@ -3,6 +3,7 @@ export type ShippingFromAddress = {
   phone: string;
   address: string;
   pincode: string;
+  labelFooter?: string;
 };
 
 export function isShippingFromConfigured(from: ShippingFromAddress | null | undefined): boolean {

@@ -12,6 +12,9 @@ import { apiPaths } from "@/lib/apiPaths";
 import { exportOrdersToExcel } from "@/lib/exportOrdersExcel";
 import { formatShortDate, formatTableDateTime } from "@/lib/formatDisplay";
 import { AdminOrderDetailModal } from "@/components/admin/AdminOrderDetailModal";
+import { ShippingLabelActionDialog } from "@/components/orders/ShippingLabelActionDialog";
+import { useShippingFrom } from "@/hooks/useShippingFrom";
+import { adminFulfillmentPortal } from "@/lib/fulfillmentPortal";
 import { formatOrderFrameLabel } from "@/lib/orderListTypes";
 import type { AdminOrderRow } from "./adminOrderTypes";
 import { Button } from "@/components/ui/button";
@@ -232,6 +235,8 @@ export function AdminOrdersAllPage() {
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [labelOrder, setLabelOrder] = useState<AdminOrderRow | null>(null);
+  const { shippingFrom, loaded: shippingFromLoaded } = useShippingFrom(adminFulfillmentPortal.shippingFrom);
   const { confirmAction, dialogProps } = useConfirmDialog();
 
   const refresh = useCallback(async () => {
@@ -608,6 +613,29 @@ export function AdminOrdersAllPage() {
                             type="button"
                             variant="outline"
                             size="icon"
+                            className="h-7 w-7"
+                            title={
+                              shippingFromLoaded
+                                ? "Print or download shipping label"
+                                : "Loading sender address…"
+                            }
+                            disabled={!shippingFromLoaded}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLabelOrder(row);
+                            }}
+                            aria-label="Print label"
+                          >
+                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+                              <path d="M6 9V2h12v7" />
+                              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                              <rect x="6" y="14" width="12" height="8" />
+                            </svg>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
                             className="h-7 w-7 text-destructive hover:text-destructive"
                             title="Delete order"
                             disabled={deletingId === row.orderId}
@@ -689,6 +717,16 @@ export function AdminOrdersAllPage() {
         orderId={detailOrderId ?? ""}
         open={!!detailOrderId}
         onClose={() => setDetailOrderId(null)}
+      />
+      <ShippingLabelActionDialog
+        open={!!labelOrder}
+        orderId={labelOrder?.orderId ?? ""}
+        order={labelOrder}
+        shippingFrom={shippingFrom}
+        shippingFromLoaded={shippingFromLoaded}
+        roleLabel="Admin"
+        onClose={() => setLabelOrder(null)}
+        onError={setError}
       />
       <ConfirmDialog {...dialogProps} />
     </div>

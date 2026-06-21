@@ -34,6 +34,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ExecutiveOrderDetailModal } from "@/components/executive/ExecutiveOrderDetailModal";
+import { ShippingLabelActionDialog } from "@/components/orders/ShippingLabelActionDialog";
+import { useShippingFrom } from "@/hooks/useShippingFrom";
+import { executiveFulfillmentPortal } from "@/lib/fulfillmentPortal";
 import { cn } from "@/lib/utils";
 import { WHATSAPP_BTN_COMPACT } from "@/lib/whatsappButtonStyles";
 import {
@@ -69,6 +72,8 @@ export function ExecutiveOrdersListPage() {
   const [payModeFilter, setPayModeFilter] = useState("all");
   const [waBusyOrderId, setWaBusyOrderId] = useState<string | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
+  const [labelOrder, setLabelOrder] = useState<OrderListRow | null>(null);
+  const { shippingFrom, loaded: shippingFromLoaded } = useShippingFrom(executiveFulfillmentPortal.shippingFrom);
 
   async function openWhatsApp(orderId: string) {
     setError("");
@@ -354,6 +359,20 @@ export function ExecutiveOrdersListPage() {
                       type="button"
                       variant="outline"
                       size="sm"
+                      disabled={!shippingFromLoaded}
+                      title={
+                        shippingFromLoaded
+                          ? "Print or download A6 shipping label"
+                          : "Loading sender address…"
+                      }
+                      onClick={() => setLabelOrder(o)}
+                    >
+                      Print label
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => setDetailOrderId(o.orderId)}
                     >
                       View
@@ -394,6 +413,16 @@ export function ExecutiveOrdersListPage() {
         orderId={detailOrderId ?? ""}
         open={!!detailOrderId}
         onClose={() => setDetailOrderId(null)}
+      />
+      <ShippingLabelActionDialog
+        open={!!labelOrder}
+        orderId={labelOrder?.orderId ?? ""}
+        order={labelOrder}
+        shippingFrom={shippingFrom}
+        shippingFromLoaded={shippingFromLoaded}
+        roleLabel="Executive"
+        onClose={() => setLabelOrder(null)}
+        onError={setError}
       />
     </div>
   );

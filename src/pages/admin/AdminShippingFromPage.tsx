@@ -17,6 +17,7 @@ export function AdminShippingFromPage() {
     phone: "",
     address: "",
     pincode: "",
+    labelFooter: "",
   });
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -70,10 +71,11 @@ export function AdminShippingFromPage() {
           phone: form.phone.trim(),
           address: form.address.trim(),
           pincode: form.pincode.trim(),
+          labelFooter: form.labelFooter?.trim() ?? "",
         }),
       });
       setForm(cfg);
-      setMsg("From address saved. Production & dispatch labels will use these details.");
+      setMsg("From address saved. Production & dispatch labels will use these details. Footer text appears centered at the bottom when set.");
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -133,6 +135,18 @@ export function AdminShippingFromPage() {
               onChange={(e) => setForm((p) => ({ ...p, pincode: e.target.value }))}
               disabled={!loaded || saving}
               aria-invalid={!!fieldErrors.pincode}
+            />
+          </FormField>
+          <FormField
+            label="Print label footer"
+            hint="Optional. Centered at the bottom of printed shipping labels."
+          >
+            <Textarea
+              rows={3}
+              value={form.labelFooter ?? ""}
+              onChange={(e) => setForm((p) => ({ ...p, labelFooter: e.target.value }))}
+              disabled={!loaded || saving}
+              placeholder="e.g. Handle with care — Memorix Frames"
             />
           </FormField>
           <Button type="submit" disabled={!loaded || saving}>
